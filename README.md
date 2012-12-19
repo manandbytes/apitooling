@@ -23,3 +23,9 @@ This was originally part of the git repo found at  git://git.eclipse.org/gitroot
 The package named net.oxbeef.apitools.core.ant is a clone of the ant tasks in pde.ui, and are essentially (I think?) unchanged. All other work is original or possibly broken out of those classes into utility classes. Many other classes have been brought in from other eclipse plugins (such as IMemento and XMLMemento) to help clean up the xml handling and report generation. 
 
 Necessarily, this project is an EPL project. 
+
+To modify or add to the ant tasks, you'll want to do the following:
+1) Import the project (projects/net.oxbeef.apitools.core) into an eclipse suitable for plugin development
+2) Modify the source as you see fit
+3) Right-click the project, export as -> jar,  destination file = ${apitooling.root}/binaries/apitooling-ant.jar
+4) re-run the ant script to verify your changes have been accepted
