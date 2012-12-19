@@ -15,3 +15,11 @@ Step 3: Run the build by typing "ant"
 Step 4: verify output/20121219/your.plugin/report.xml exists
 Step 5: cp antSetup/web/analysis.xsl antSetup/output/20121219/your.plugin/    (move xsl into same folder as your report)
 Step 6: View in web browser, see the ugly progress
+
+origin  
+
+This was originally part of the git repo found at  git://git.eclipse.org/gitroot/pde/eclipse.pde.ui.git, however the ant tasks were bundled in the same plugin when clearly they should be broken out. 
+
+The package named net.oxbeef.apitools.core.ant is a clone of the ant tasks in pde.ui, and are essentially (I think?) unchanged. All other work is original or possibly broken out of those classes into utility classes. Many other classes have been brought in from other eclipse plugins (such as IMemento and XMLMemento) to help clean up the xml handling and report generation. 
+
+Necessarily, this project is an EPL project. 
