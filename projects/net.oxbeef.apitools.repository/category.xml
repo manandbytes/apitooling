@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<site>
+   <feature url="features/net.oxbeef.apitools.feature_1.0.0.qualifier.jar" id="net.oxbeef.apitools.feature" version="1.0.0.qualifier">
+      <category name="APITools"/>
+   </feature>
+   <category-def name="APITools" label="APITools"/>
+</site>

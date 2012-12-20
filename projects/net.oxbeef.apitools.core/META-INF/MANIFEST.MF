@@ -1,7 +1,7 @@
 Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-Name: Core
-Bundle-SymbolicName: net.oxbeef.apitools.core
+Bundle-SymbolicName: net.oxbeef.apitools.core;singleton:=true
 Bundle-Version: 1.0.0.qualifier
 Bundle-Activator: net.oxbeef.apitools.core.Activator
 Require-Bundle: org.eclipse.osgi;bundle-version="[3.4.0,4.0.0)",
