@@ -1,0 +1,145 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>org.eclipse.cbi</groupId>
+  <artifactId>apitools-plugin</artifactId>
+  <version>0.0.1-SNAPSHOT</version>
+  <packaging>maven-plugin</packaging>
+
+  <name>apitools Maven Mojo</name>
+
+  <dependencies>
+    <dependency>
+      <groupId>org.apache.maven</groupId>
+      <artifactId>maven-plugin-api</artifactId>
+      <version>2.0</version>
+    </dependency>
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <version>3.8.1</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+    	<groupId>org.eclipse.tycho</groupId>
+    	<artifactId>tycho-p2-facade</artifactId>
+    	<version>0.16.0</version>
+    </dependency>
+
+    <!-- Expected as bundle, but found Maven artifact -->
+    <dependency>
+    	<groupId>org.apache.ant</groupId>
+    	<artifactId>ant</artifactId>
+    	<version>1.8.4</version>
+    </dependency>
+    <dependency>
+    	<groupId>asm</groupId>
+    	<artifactId>asm</artifactId>
+    	<version>3.3.1</version>
+    </dependency>
+
+
+    <!-- Bundles we depend on -->
+    <dependency>
+    	<groupId>net.oxbeef.apitools</groupId>
+      	<artifactId>net.oxbeef.apitools.core</artifactId>
+      	<version>1.0.0-SNAPSHOT</version>
+    </dependency>
+
+	<!-- Provided by Eclipse Nexus -->
+    <dependency>
+    	<groupId>org.eclipse.ant</groupId>
+      	<artifactId>org.eclipse.ant.core</artifactId>
+      	<version>3.2.201</version>
+    </dependency>
+        <dependency>
+    	<groupId>com.ibm.icu</groupId>
+    	<artifactId>com.ibm.icu</artifactId>
+    	<version>4.2.1</version>
+    </dependency>
+    <dependency>
+    	<groupId>${project.groupId}.bundles</groupId>
+    	<artifactId>org.eclipse.pde.api.tools</artifactId>
+    	<version>1.0.500.v20121210-192755</version>
+    </dependency>
+    <dependency>
+    	<groupId>${project.groupId}.bundles</groupId>
+    	<artifactId>org.eclipse.osgi</artifactId>
+    	<version>3.9.0.v20121210-201226</version>
+    </dependency>
+    <dependency>
+    	<groupId>${project.groupId}.bundles</groupId>
+    	<artifactId>org.eclipse.core.runtime</artifactId>
+    	<version>3.9.0.v20121004-163638</version>
+    </dependency>
+    <dependency>
+    	<groupId>${project.groupId}.bundles</groupId>
+    	<artifactId>org.eclipse.pde.core</artifactId>
+    	<version>3.8.100.v20121210-192755</version>
+    </dependency>
+    <dependency>
+    	<groupId>${project.groupId}.bundles</groupId>
+    	<artifactId>org.eclipse.jdt.core</artifactId>
+    	<version>3.9.0.v20121208-144805</version>
+    </dependency>
+    <dependency>
+    	<groupId>${project.groupId}.bundles</groupId>
+    	<artifactId>org.eclipse.core.resources</artifactId>
+    	<version>3.8.100.v20121214-121812</version>
+    </dependency>
+    <dependency>
+    	<groupId>${project.groupId}.bundles</groupId>
+    	<artifactId>org.eclipse.text</artifactId>
+    	<version>3.5.300.v20121210-150853</version>
+    </dependency>
+     <dependency>
+    	<groupId>${project.groupId}.bundles</groupId>
+    	<artifactId>org.eclipse.jdt</artifactId>
+    	<version>3.9.0.v201212140730</version>
+    </dependency>
+    <dependency>
+    	<groupId>${project.groupId}.bundles</groupId>
+    	<artifactId>org.eclipse.jdt.launching</artifactId>
+    	<version>3.7.0.v20121210-204723</version>
+    </dependency>
+	<dependency>
+		<groupId>${project.groupId}.bundles</groupId>
+		<artifactId>org.eclipse.debug.core</artifactId>
+		<version>3.8.0.v20121210-205647</version>
+	</dependency>
+
+    <!-- dependency>
+    	<groupId>${project.groupId}.bundles</groupId>
+    	<artifactId>org.eclipse.core.filebuffers</artifactId>
+    	<version>[3.4.0,4.0.0)</version>
+    </dependency>
+    <dependency>
+    	<groupId>${project.groupId}.bundles</groupId>
+    	<artifactId>org.eclipse.team.core</artifactId>
+    	<version>[3.4.0,4.0.0)</version>
+    </dependency>
+    <dependency>
+    	<groupId>${project.groupId}.bundles</groupId>
+    	<artifactId>org.eclipse.core.filesystem</artifactId>
+    	<version>[1.2.0,2.0.0)</version>
+    </dependency>
+    <dependency>
+    	<groupId>${project.groupId}.bundles</groupId>
+    	<artifactId>org.eclipse.equinox.frameworkadmin</artifactId>
+    	<version>[2.0.0,3.0.0)</version>
+    </dependency>
+    <dependency>
+    	<groupId>${project.groupId}.bundles</groupId>
+    	<artifactId>org.eclipse.core.variables</artifactId>
+    	<version>[3.2.0,4.0.0)</version>
+    </dependency-->
+  </dependencies>
+
+  <repositories>
+  	<repository>
+  		<id>eclipse-testing</id>
+  		<url>http://maven.eclipse.org/nexus/content/repositories/testing/</url>
+  	</repository>
+  </repositories>
+</project>
