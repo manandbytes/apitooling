@@ -38,6 +38,11 @@
     	<artifactId>asm</artifactId>
     	<version>3.3.1</version>
     </dependency>
+    <dependency>
+    	<groupId>asm</groupId>
+    	<artifactId>asm-tree</artifactId>
+    	<version>3.3.1</version>
+    </dependency>
 
 
     <!-- Bundles we depend on -->
