@@ -1,5 +1,8 @@
 package org.eclipse.pde.apitools.ant.util;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -11,6 +14,10 @@ import java.util.List;
 import java.util.Properties;
 import java.util.Set;
 
+import javax.xml.parsers.FactoryConfigurationError;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.parsers.SAXParser;
+import javax.xml.parsers.SAXParserFactory;
 
 import org.eclipse.pde.api.tools.internal.problems.ApiProblemFactory;
 import org.eclipse.pde.api.tools.internal.provisional.ApiPlugin;
@@ -20,6 +27,11 @@ import org.eclipse.pde.api.tools.internal.provisional.comparator.IDelta;
 import org.eclipse.pde.api.tools.internal.provisional.model.IApiComponent;
 import org.eclipse.pde.api.tools.internal.provisional.problems.IApiProblem;
 import org.eclipse.pde.apitools.ant.internal.AntFilterStore;
+import org.xml.sax.Attributes;
+import org.xml.sax.InputSource;
+import org.xml.sax.SAXException;
+import org.xml.sax.SAXParseException;
+import org.xml.sax.helpers.DefaultHandler;
 
 public class ApiToolsUtils {
 	/**
@@ -124,4 +136,73 @@ public class ApiToolsUtils {
 		return (IApiProblem[]) ret.toArray(new IApiProblem[ret.size()]);
 	}
 	
+	public static boolean containsAPIToolsNature(String pluginXMLContents) {
+		SAXParserFactory factory = null;
+		try {
+			factory = SAXParserFactory.newInstance();
+		} catch (FactoryConfigurationError e) {
+			return false;
+		}
+		SAXParser saxParser = null;
+		try {
+			saxParser = factory.newSAXParser();
+		} catch (ParserConfigurationException e) {
+			// ignore
+		} catch (SAXException e) {
+			// ignore
+		}
+
+		if (saxParser == null) {
+			return false;
+		}
+
+		// Parse
+		InputSource inputSource = new InputSource(new BufferedReader(new StringReader(pluginXMLContents)));
+		try {
+			APIToolsNatureDefaultHandler defaultHandler = new APIToolsNatureDefaultHandler();
+			saxParser.parse(inputSource, defaultHandler);
+			return defaultHandler.isAPIToolsNature();
+		} catch (SAXException e) {
+			// ignore
+		} catch (IOException e) {
+			// ignore
+		}
+		return false;
+	}
+
+	static class APIToolsNatureDefaultHandler extends DefaultHandler {
+		private static final String NATURE_ELEMENT_NAME = "nature"; //$NON-NLS-1$
+		boolean isAPIToolsNature = false;
+		boolean insideNature = false;
+		StringBuffer buffer;
+		public void error(SAXParseException e) throws SAXException {
+			e.printStackTrace();
+		}
+		public void startElement(String uri, String localName, String name, Attributes attributes)
+				throws SAXException {
+			if (this.isAPIToolsNature) return;
+			this.insideNature = NATURE_ELEMENT_NAME.equals(name);
+			if (this.insideNature) {
+				this.buffer = new StringBuffer();
+			}
+		}
+		public void characters(char[] ch, int start, int length)
+				throws SAXException {
+			if (this.insideNature) {
+				this.buffer.append(ch, start, length);
+			}
+		}
+		public void endElement(String uri, String localName, String name)
+				throws SAXException {
+			if (this.insideNature) {
+				// check the contents of the characters
+				String natureName = String.valueOf(this.buffer).trim();
+				this.isAPIToolsNature = ApiPlugin.NATURE_ID.equals(natureName);
+			}
+			this.insideNature = false;
+		}
+		public boolean isAPIToolsNature() {
+			return this.isAPIToolsNature;
+		}
+	}
 }

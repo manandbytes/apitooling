@@ -34,13 +34,23 @@
   <target name="dist" depends="init"
         description="generate the distribution" >
 
-	<apianalysis
+	<apitools.analysis
 		baseline="${baseline}"
 		profile="${nightly}"
-		report="${reports}/${DSTAMP}"
+		report="${reports}/${DSTAMP}${TSTAMP}"
 		includelist="${includesFile}"
 		preferences="${preferences}"
 		debug="true"
+	/>
+
+	<apitools.breakageTest
+                baseline="${baseline}"
+                profile="${nightly}"
+                report="${reports}/${DSTAMP}${TSTAMP}"
+                includelist="${includesFile}"
+                preferences="${preferences}"
+                debug="true"
+		styleSheet="../../web/analysis.xsl"
 	/>
   </target>
 </project>

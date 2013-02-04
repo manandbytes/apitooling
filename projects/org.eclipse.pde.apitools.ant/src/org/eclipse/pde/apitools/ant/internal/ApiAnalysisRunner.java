@@ -3,7 +3,6 @@ package org.eclipse.pde.apitools.ant.internal;
 import java.util.HashMap;
 import java.util.Properties;
 
-
 import org.apache.tools.ant.BuildException;
 import org.eclipse.pde.api.tools.internal.provisional.model.IApiBaseline;
 import org.eclipse.pde.api.tools.internal.provisional.model.IApiComponent;
@@ -22,8 +21,9 @@ public class ApiAnalysisRunner extends AbstractAnalysisRunner {
 	
 	public ApiAnalysisRunner(String referenceBaseline, String currentBaseline,
 			String reports, String filters, Properties properties,
+			boolean skipNonApi, String xslSheet,
 			String includeListLocation, String excludeListLocation, boolean debug) {
-		super(reports, filters, properties, debug);
+		super(reports, filters, properties, skipNonApi, xslSheet, debug);
 		this.referenceBaseline = referenceBaseline;
 		this.currentBaselineLocation = currentBaseline;
 		this.includeListLocation = includeListLocation;

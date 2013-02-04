@@ -31,5 +31,11 @@ public class IOUtil {
 			}
 		}
 	}
+	
+	public static boolean isZipJarFile(String fileName) {
+		String normalizedFileName = fileName.toLowerCase();
+		return normalizedFileName.endsWith(".zip") //$NON-NLS-1$
+			|| normalizedFileName.endsWith(".jar"); //$NON-NLS-1$
+	}
 
 }

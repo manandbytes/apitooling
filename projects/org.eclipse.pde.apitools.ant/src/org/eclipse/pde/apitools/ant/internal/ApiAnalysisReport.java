@@ -39,11 +39,16 @@ public class ApiAnalysisReport extends RootReport implements IStyleSheetProvider
 	protected String id;
 	protected IApiProblem[] problems;
 	protected Properties preferences;
+	protected String styleSheetLoc;
 	public ApiAnalysisReport(String componentId, IApiProblem[] problems, Properties problemPreferences) {
+		this(componentId, problems, problemPreferences, null);
+	}
+	public ApiAnalysisReport(String componentId, IApiProblem[] problems, Properties problemPreferences, String styleSheetLoc) {
 		super("report");
 		this.id = componentId;
 		this.problems = problems;
 		this.preferences = problemPreferences;
+		this.styleSheetLoc = (styleSheetLoc == null ? "analysis.xsl" : styleSheetLoc);
 	}
 	
 	private int[] mementoProblemTypes = null;
@@ -157,6 +162,6 @@ public class ApiAnalysisReport extends RootReport implements IStyleSheetProvider
 
 	@Override
 	public String getStyleSheetPath() {
-		return "analysis.xsl";
+		return styleSheetLoc;
 	}
 }

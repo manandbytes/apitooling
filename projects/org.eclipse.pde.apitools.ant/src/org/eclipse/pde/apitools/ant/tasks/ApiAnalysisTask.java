@@ -32,6 +32,8 @@ public class ApiAnalysisTask extends Task {
 	private String reports;
 	private String includeListLocation;
 	private String excludeListLocation;
+	private String styleSheet;
+	private boolean skipNonApi = false;
 	
 	public void execute() throws BuildException {
 		checkArgs();
@@ -40,6 +42,7 @@ public class ApiAnalysisTask extends Task {
 		ApiAnalysisRunner runner = 
 				new ApiAnalysisRunner(referenceBaseline, currentBaselineLocation, 
 						reports, filters,  properties, 
+						skipNonApi, styleSheet,
 						includeListLocation, excludeListLocation, debug);
 		HashMap<String, ApiAnalysisReport> reports = runner.generateReports();
 		
@@ -55,7 +58,8 @@ public class ApiAnalysisTask extends Task {
 					continue;
 				}
 				File file = new File(this.reports, id);
-				File file2 = new File(file, "report.xml");
+				File file2 = new File(file, "analysisReport.xml");
+				System.out.println("Saving report to " + file2.getAbsolutePath());
 				ReportUtils.saveReport(report, file2);
 			} catch(ToolingException ioe) {
 				throw new BuildException(ioe);
@@ -253,7 +257,30 @@ public class ApiAnalysisTask extends Task {
 		this.currentBaselineLocation = baselineLocation;
 	}
 	
+	
+	/**
+	 * Set whether the task runs in debug mode
+	 * @param debug
+	 */
 	public void setDebug(boolean debug) {
 		this.debug = debug;
+	}
+	
+	/**
+	 * Set the location of a stylesheet file which should be referenced by the reports
+	 * @param styleSheet
+	 */
+	public void setStyleSheet(String styleSheet) {
+		this.styleSheet = styleSheet;
+	}
+	
+	/**
+	 * Do you wish to generate empty reports for skipping 
+	 * a non-api bundle?
+	 * 
+	 * @param b true if we should skip reports, false if generate all
+	 */
+	public void setSkipNonApi(boolean b) {
+		this.skipNonApi = b;
 	}
 }

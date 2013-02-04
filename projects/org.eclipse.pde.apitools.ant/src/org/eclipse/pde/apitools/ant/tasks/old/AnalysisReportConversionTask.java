@@ -33,6 +33,7 @@ import org.eclipse.osgi.util.NLS;
 import org.eclipse.pde.api.tools.internal.IApiXmlConstants;
 import org.eclipse.pde.api.tools.internal.provisional.ApiPlugin;
 import org.eclipse.pde.api.tools.internal.util.Util;
+import org.eclipse.pde.apitools.ant.util.StringUtils;
 import org.xml.sax.Attributes;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
@@ -52,28 +53,7 @@ public class AnalysisReportConversionTask extends Task {
 			this.severity = severity;
 		}
 		public String getHtmlMessage() {
-			StringBuffer buffer = new StringBuffer();
-			char[] chars = this.message.toCharArray();
-			for (int i = 0, max = chars.length; i < max; i++) {
-				char character = chars[i];
-				switch(character) {
-					case '<':
-						buffer.append("&lt;"); //$NON-NLS-1$
-						break;
-					case '>':
-						buffer.append("&gt;"); //$NON-NLS-1$
-						break;
-					case '&':
-						buffer.append("&amp;"); //$NON-NLS-1$
-						break;
-					case '"':
-						buffer.append("&quot;"); //$NON-NLS-1$
-						break;
-					default:
-						buffer.append(character);
-				}
-			}
-			return String.valueOf(buffer);
+			return StringUtils.convertToHtml(this.message);
 		}
 		public String toString() {
 			StringBuffer buffer = new StringBuffer();

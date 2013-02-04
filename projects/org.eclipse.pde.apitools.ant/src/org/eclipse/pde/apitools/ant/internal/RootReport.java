@@ -3,8 +3,10 @@ package org.eclipse.pde.apitools.ant.internal;
 import org.eclipse.pde.apitools.ant.util.IStyleSheetProvider;
 import org.eclipse.pde.apitools.ant.util.XMLMemento;
 
-public abstract class RootReport extends AbstractReport {
+public abstract class RootReport extends AbstractReport implements IStyleSheetProvider {
 	private String entityName;
+	private String sheetPath = null;
+	
 	public RootReport(String entityName) {
 		this.entityName = entityName;
 	}
@@ -25,5 +27,12 @@ public abstract class RootReport extends AbstractReport {
 		}
 		fillMemento(xml);
 		return xml;
+	}
+	public String getStyleSheetPath() {
+		return sheetPath;
+	}
+	
+	public void setStyleSheetPath(String path) {
+		this.sheetPath = path;
 	}
 }

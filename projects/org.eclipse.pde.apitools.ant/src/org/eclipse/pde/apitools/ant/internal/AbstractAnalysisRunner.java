@@ -3,7 +3,6 @@ package org.eclipse.pde.apitools.ant.internal;
 import java.util.HashMap;
 import java.util.Properties;
 
-
 import org.apache.tools.ant.BuildException;
 import org.eclipse.core.runtime.NullProgressMonitor;
 import org.eclipse.pde.api.tools.internal.builder.BaseApiAnalyzer;
@@ -12,6 +11,7 @@ import org.eclipse.pde.api.tools.internal.provisional.ApiPlugin;
 import org.eclipse.pde.api.tools.internal.provisional.model.IApiBaseline;
 import org.eclipse.pde.api.tools.internal.provisional.model.IApiComponent;
 import org.eclipse.pde.api.tools.internal.provisional.problems.IApiProblem;
+import org.eclipse.pde.api.tools.internal.util.Util;
 import org.eclipse.pde.apitools.ant.util.ApiToolsUtils;
 
 public abstract class AbstractAnalysisRunner {
@@ -19,8 +19,11 @@ public abstract class AbstractAnalysisRunner {
 	protected String filters;
 	protected Properties properties;
 	protected boolean debug;
+	protected boolean skipNonApi;
+	protected String xslLoc;
 
-	public AbstractAnalysisRunner(String reports, String filters, Properties properties, boolean debug) {
+	public AbstractAnalysisRunner(String reports, String filters, Properties properties, 
+			boolean skipNonApi, String xslLoc, boolean debug) {
 		this.reports = reports;
 		this.filters = filters;
 		this.properties = properties;
@@ -45,9 +48,10 @@ public abstract class AbstractAnalysisRunner {
 		HashMap<String, ApiAnalysisReport> reports = new HashMap<String, ApiAnalysisReport>();
 		for( int i = 0; i < removedBundles.length; i++ ) {
 			IApiProblem problem = ApiToolsUtils.createRemovedComponentProblem(removedBundles[i].getSymbolicName());
-			reports.put(removedBundles[i].getSymbolicName(), 
-					new ApiAnalysisReport(removedBundles[i].getSymbolicName(), 
-							new IApiProblem[]{ problem }, properties));
+			ApiAnalysisReport report = new ApiAnalysisReport(removedBundles[i].getSymbolicName(), 
+					new IApiProblem[]{ problem }, properties, xslLoc);
+
+			reports.put(removedBundles[i].getSymbolicName(), report);
 		}
 		if( debug )
 			System.out.println("Finished Calculating Missing Bundles.\n\n");
@@ -67,11 +71,11 @@ public abstract class AbstractAnalysisRunner {
 				continue;
 			}
 			
-//			if (!Util.isApiToolsComponent(apiComponent)) {
-//				reports.put(name, new ApiAnalysisReport.AnalysisSkippedReport(
-//						name, "nonAPI"));
-//				continue;
-//			}
+			if (skipNonApi && !Util.isApiToolsComponent(apiComponent)) {
+				reports.put(name, new ApiAnalysisReport.AnalysisSkippedReport(
+						name, "nonAPI"));
+				continue;
+			}
 			
 			BaseApiAnalyzer analyzer = new BaseApiAnalyzer();
 			try {

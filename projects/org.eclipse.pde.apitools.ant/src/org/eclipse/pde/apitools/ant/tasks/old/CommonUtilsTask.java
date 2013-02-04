@@ -10,24 +10,17 @@
  *******************************************************************************/
 package org.eclipse.pde.apitools.ant.tasks.old;
 
-import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Set;
 
-import org.apache.tools.ant.BuildException;
 import org.apache.tools.ant.Task;
-import org.eclipse.core.runtime.CoreException;
-import org.eclipse.osgi.util.NLS;
-import org.eclipse.pde.api.tools.internal.model.ApiModelFactory;
 import org.eclipse.pde.api.tools.internal.provisional.ApiPlugin;
 import org.eclipse.pde.api.tools.internal.provisional.model.IApiBaseline;
-import org.eclipse.pde.api.tools.internal.provisional.model.IApiComponent;
 import org.eclipse.pde.api.tools.internal.util.FilteredElements;
-import org.eclipse.pde.api.tools.internal.util.TarException;
 import org.eclipse.pde.api.tools.internal.util.Util;
+import org.eclipse.pde.apitools.ant.util.BaselineUtils;
+import org.eclipse.pde.apitools.ant.util.ReportUtils;
+import org.eclipse.pde.apitools.ant.util.ToolingException;
 
 /**
  * Common code for API Tools Ant tasks.
@@ -62,25 +55,7 @@ public abstract class CommonUtilsTask extends Task {
 	 * @return a new {@link IApiBaseline}
 	 */
 	protected IApiBaseline createBaseline(String baselineName, String installLocation, String eeFileLocation) {
-		try {
-			IApiBaseline baseline = null;
-			if (ApiPlugin.isRunningInFramework()) {
-				baseline = ApiModelFactory.newApiBaseline(baselineName);
-			} else if (eeFileLocation != null) {
-				baseline = ApiModelFactory.newApiBaseline(baselineName, new File(eeFileLocation));
-			} else {
-				baseline = ApiModelFactory.newApiBaseline(baselineName, Util.getEEDescriptionFile());
-			}
-			
-			IApiComponent[] components = ApiModelFactory.addComponents(baseline, installLocation, null);
-			if (components.length == 0){			
-				throw new BuildException(NLS.bind(Messages.directoryIsEmpty, installLocation));
-			}
-			return baseline;
-		} catch (CoreException e) {
-			e.printStackTrace();
-			return null;
-		}
+		return BaselineUtils.createBaseline(baselineName, installLocation, eeFileLocation);
 	}
 	
 	/**
@@ -89,9 +64,7 @@ public abstract class CommonUtilsTask extends Task {
 	 * @param folder
 	 */
 	protected void deleteBaseline(String referenceLocation, File folder) {
-		if (Util.isArchive(referenceLocation)) {
-			Util.delete(folder.getParentFile());
-		}
+		BaselineUtils.deleteBaseline(referenceLocation, folder);
 	}
 	
 	/**
@@ -101,56 +74,7 @@ public abstract class CommonUtilsTask extends Task {
 	 * @return the {@link File} handle to the extracted SDK
 	 */
 	protected File extractSDK(String installDirName, String location) {
-		File file = new File(location);
-		File locationFile = file;
-		if (!locationFile.exists()) {
-			throw new BuildException(NLS.bind(Messages.fileDoesnotExist, location));
-		}
-		if (Util.isArchive(location)) {
-			File tempDir = new File(System.getProperty("java.io.tmpdir")); //$NON-NLS-1$
-			File installDir = new File(tempDir, installDirName);
-			if (installDir.exists()) {
-				// delete existing folder
-				if (!Util.delete(installDir)) {
-					throw new BuildException(
-						NLS.bind(
-							Messages.couldNotDelete,
-							installDir.getAbsolutePath()));
-				}
-			}
-			if (!installDir.mkdirs()) {
-				throw new BuildException(
-						NLS.bind(
-								Messages.couldNotCreate,
-								installDir.getAbsolutePath()));
-			}
-			try {
-				if (Util.isZipJarFile(location)) {
-					Util.unzip(location, installDir.getAbsolutePath());
-				} else if (Util.isTGZFile(location)) {
-					Util.guntar(location, installDir.getAbsolutePath());
-				}
-			} catch (IOException e) {
-				throw new BuildException(
-					NLS.bind(
-						Messages.couldNotUnzip,
-						new String[] {
-								location,
-								installDir.getAbsolutePath()
-						}));
-			} catch (TarException e) {
-				throw new BuildException(
-						NLS.bind(
-								Messages.couldNotUntar,
-								new String[] {
-										location,
-										installDir.getAbsolutePath()
-								}));
-			}
-			return new File(installDir, ECLIPSE_FOLDER_NAME);
-		} else {
-			return locationFile;
-		}
+		return BaselineUtils.extractSDK(installDirName, location);
 	}
 	
 	/**
@@ -172,37 +96,10 @@ public abstract class CommonUtilsTask extends Task {
 	 * @param reportname name of the file to output to
 	 */
 	protected void saveReport(String componentID, String contents, String reportname) {
-		File dir = new File(this.reportLocation);
-		if (!dir.exists()) {
-			if (!dir.mkdirs()) {
-				throw new BuildException(NLS.bind(Messages.errorCreatingReportDirectory, this.reportLocation));
-			}
-		}
-		// If the caller has provided a component id, create a child directory
-		if (componentID != null){
-			dir = new File(dir, componentID);
-			if (!dir.exists()) {
-				if (!dir.mkdirs()) {
-					throw new BuildException(NLS.bind(Messages.errorCreatingReportDirectory, dir));
-				}
-			}
-		}
-		File reportFile = new File(dir, reportname);
-		BufferedWriter writer = null;
 		try {
-			writer = new BufferedWriter(new FileWriter(reportFile));
-			writer.write(contents);
-			writer.flush();
-		} catch (IOException e) {
-			ApiPlugin.log(e);
-		} finally {
-			if (writer != null) {
-				try {
-					writer.close();
-				} catch (IOException e) {
-					// ignore
-				}
-			}
+			ReportUtils.saveReport(componentID, contents, reportname, reportname);
+		} catch(ToolingException te) {
+			ApiPlugin.log(te);
 		}
 	}
 	
@@ -213,45 +110,10 @@ public abstract class CommonUtilsTask extends Task {
 	 * @return individual patterns or <code>null</code>
 	 */
 	protected String[] parsePatterns(String patterns) {
-		if (patterns == null || patterns.trim().length() == 0) {
-			return null;
-		}
-		String[] strings = patterns.split(","); //$NON-NLS-1$
-		List list = new ArrayList();
-		for (int i = 0; i < strings.length; i++) {
-			String pattern = strings[i].trim();
-			if (pattern.length() > 0) {
-				list.add(pattern);
-			}
-		}
-		return (String[]) list.toArray(new String[list.size()]);
+		return org.eclipse.pde.apitools.ant.util.StringUtils.parsePatterns(patterns);
 	}
 
 	public static String convertToHtml(String s) {
-		char[] contents = s.toCharArray();
-		StringBuffer buffer = new StringBuffer();
-		for (int i = 0, max = contents.length; i < max; i++) {
-			char c = contents[i];
-			switch (c) {
-				case '<':
-					buffer.append("&lt;"); //$NON-NLS-1$
-					break;
-				case '>':
-					buffer.append("&gt;"); //$NON-NLS-1$
-					break;
-				case '\"':
-					buffer.append("&quot;"); //$NON-NLS-1$
-					break;
-				case '&':
-					buffer.append("&amp;"); //$NON-NLS-1$
-					break;
-				case '^':
-					buffer.append("&and;"); //$NON-NLS-1$
-					break;
-				default:
-					buffer.append(c);
-			}
-		}
-		return String.valueOf(buffer);
+		return org.eclipse.pde.apitools.ant.util.StringUtils.convertToHtml(s);
 	}
 }

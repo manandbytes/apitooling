@@ -11,14 +11,12 @@
 package org.eclipse.pde.apitools.ant.tasks.old;
 
 import java.io.BufferedInputStream;
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileFilter;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.io.StringReader;
 import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Enumeration;
@@ -29,11 +27,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
-
-import javax.xml.parsers.FactoryConfigurationError;
-import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.parsers.SAXParser;
-import javax.xml.parsers.SAXParserFactory;
 
 import org.apache.tools.ant.BuildException;
 import org.apache.tools.ant.Task;
@@ -52,54 +45,15 @@ import org.eclipse.pde.api.tools.internal.provisional.ApiPlugin;
 import org.eclipse.pde.api.tools.internal.provisional.model.IApiTypeContainer;
 import org.eclipse.pde.api.tools.internal.provisional.scanner.TagScanner;
 import org.eclipse.pde.api.tools.internal.util.Util;
+import org.eclipse.pde.apitools.ant.util.ApiToolsUtils;
+import org.eclipse.pde.apitools.ant.util.IOUtil;
 import org.osgi.framework.BundleException;
 import org.osgi.framework.Constants;
-import org.xml.sax.Attributes;
-import org.xml.sax.InputSource;
-import org.xml.sax.SAXException;
-import org.xml.sax.SAXParseException;
-import org.xml.sax.helpers.DefaultHandler;
 
 /**
  * Ant task to generate the .api_description file during the Eclipse build.
  */
 public class ApiFileGenerationTask extends Task {
-
-	static class APIToolsNatureDefaultHandler extends DefaultHandler {
-		private static final String NATURE_ELEMENT_NAME = "nature"; //$NON-NLS-1$
-		boolean isAPIToolsNature = false;
-		boolean insideNature = false;
-		StringBuffer buffer;
-		public void error(SAXParseException e) throws SAXException {
-			e.printStackTrace();
-		}
-		public void startElement(String uri, String localName, String name, Attributes attributes)
-				throws SAXException {
-			if (this.isAPIToolsNature) return;
-			this.insideNature = NATURE_ELEMENT_NAME.equals(name);
-			if (this.insideNature) {
-				this.buffer = new StringBuffer();
-			}
-		}
-		public void characters(char[] ch, int start, int length)
-				throws SAXException {
-			if (this.insideNature) {
-				this.buffer.append(ch, start, length);
-			}
-		}
-		public void endElement(String uri, String localName, String name)
-				throws SAXException {
-			if (this.insideNature) {
-				// check the contents of the characters
-				String natureName = String.valueOf(this.buffer).trim();
-				this.isAPIToolsNature = ApiPlugin.NATURE_ID.equals(natureName);
-			}
-			this.insideNature = false;
-		}
-		public boolean isAPIToolsNature() {
-			return this.isAPIToolsNature;
-		}
-	}
 
 	boolean debug;
 
@@ -319,7 +273,7 @@ public class ApiFileGenerationTask extends Task {
 						BufferedInputStream inputStream = null;
 						ZipFile zipFile = null;
 						try {
-							if (isZipJarFile(currentManifest.getName())) {
+							if (IOUtil.isZipJarFile(currentManifest.getName())) {
 								zipFile = new ZipFile(currentManifest);
 								final ZipEntry entry = zipFile.getEntry("META-INF/MANIFEST.MF"); //$NON-NLS-1$
 								if (entry != null) {
@@ -486,7 +440,7 @@ public class ApiFileGenerationTask extends Task {
 	private IApiTypeContainer getContainer(String location) {
 		File f = new File(location);
 		if (!f.exists()) return null;
-		if (isZipJarFile(location)) {
+		if (IOUtil.isZipJarFile(location)) {
 			return new ArchiveApiTypeContainer(null, location);
 		} else {
 			return new DirectoryApiTypeContainer(null, location);
@@ -547,11 +501,7 @@ public class ApiFileGenerationTask extends Task {
 		}
 		return false;
 	}
-	private static boolean isZipJarFile(String fileName) {
-		String normalizedFileName = fileName.toLowerCase();
-		return normalizedFileName.endsWith(".zip") //$NON-NLS-1$
-			|| normalizedFileName.endsWith(".jar"); //$NON-NLS-1$
-	}
+
 	/**
 	 * Check if the given source contains an source extension point.
 	 * 
@@ -559,36 +509,6 @@ public class ApiFileGenerationTask extends Task {
 	 * @return true if it contains a source extension point, false otherwise
 	 */
 	private boolean containsAPIToolsNature(String pluginXMLContents) {
-		SAXParserFactory factory = null;
-		try {
-			factory = SAXParserFactory.newInstance();
-		} catch (FactoryConfigurationError e) {
-			return false;
-		}
-		SAXParser saxParser = null;
-		try {
-			saxParser = factory.newSAXParser();
-		} catch (ParserConfigurationException e) {
-			// ignore
-		} catch (SAXException e) {
-			// ignore
-		}
-
-		if (saxParser == null) {
-			return false;
-		}
-
-		// Parse
-		InputSource inputSource = new InputSource(new BufferedReader(new StringReader(pluginXMLContents)));
-		try {
-			APIToolsNatureDefaultHandler defaultHandler = new APIToolsNatureDefaultHandler();
-			saxParser.parse(inputSource, defaultHandler);
-			return defaultHandler.isAPIToolsNature();
-		} catch (SAXException e) {
-			// ignore
-		} catch (IOException e) {
-			// ignore
-		}
-		return false;
+		return ApiToolsUtils.containsAPIToolsNature(pluginXMLContents);
 	}
 }

@@ -24,7 +24,7 @@ public class IncrementalBaselineAnalysisRunner extends AbstractAnalysisRunner {
 	public IncrementalBaselineAnalysisRunner(String referenceBaseline, String currentBaseline,
 			String reports, String filters, Properties properties,
 			boolean debug) {
-		super(reports, filters, properties, debug);
+		super(reports, filters, properties, false, null, debug);
 		this.referenceBaseline = referenceBaseline;
 		this.currentBaselineLocation = currentBaseline;
 	}
