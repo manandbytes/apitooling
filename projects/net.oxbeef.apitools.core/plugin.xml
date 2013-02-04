@@ -4,14 +4,14 @@
    <extension
          point="org.eclipse.ant.core.antTasks">
       <antTask
-            class="net.oxbeef.apitools.core.ant.slim.ApiAnalysisTask"
+            class="org.eclipse.pde.apitools.ant.ApiAnalysisTask"
             eclipseRuntime="false"
             headless="true"
             library="/"
             name="apianalysis">
       </antTask>
       <antTask
-            class="net.oxbeef.apitools.core.ant.slim.DebugBaselineTask"
+            class="org.eclipse.pde.apitools.ant.DebugBaselineTask"
             library="/"
             name="debugbaseline">
       </antTask>

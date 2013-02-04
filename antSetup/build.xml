@@ -4,8 +4,8 @@
     </description>
   <!-- set global properties for this build -->
   <property name="eclipse.install.dir" value="/home/rob/apps/eclipse/builds/wtp3.4.1/"/>
-  <property name="baseline" value="/home/rob/tmp/apitools/plugins/baseline"/>
-  <property name="nightly" value="/home/rob/tmp/apitools/plugins/nightly"/>
+  <property name="baseline" value="/home/rob/tmp/apitools/plugins/jbide13212/baseline"/>
+  <property name="nightly" value="/home/rob/tmp/apitools/plugins/jbide13212/nightly"/>
 
   <property name="apitooling.root" value="/home/rob/code/github/apitooling"/>
   <property name="tooling.lib.dir" value="${apitooling.root}/binaries"/>
@@ -13,7 +13,7 @@
   <property name="task.props" value="${apitooling.ant.dir}/api-tasks-custom.properties"/>
   <property name="reports" value="${apitooling.ant.dir}/output"/>
   <property name="preferences" value="${apitooling.ant.dir}/org.eclipse.pde.api.tools.prefs"/>
-  <property name="includesFile" value="${apitooling.ant.dir}/includes.txt"/>
+  <property name="includesFile" value="/home/rob/tmp/apitools/plugins/jbide13212/includes.txt"/>
 
 
   <target name="init">

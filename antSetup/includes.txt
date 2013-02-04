@@ -1,2 +1,1 @@
-org.jboss.ide.eclipse.as.wtp.core
 MyPluginWithPacks
