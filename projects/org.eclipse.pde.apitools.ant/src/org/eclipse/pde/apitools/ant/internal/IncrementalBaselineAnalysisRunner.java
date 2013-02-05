@@ -1,3 +1,13 @@
+/*******************************************************************************
+ * Copyright (c) 2013 Red Hat Inc. and others.
+ * All rights reserved. This program and the accompanying materials
+ * are made available under the terms of the Eclipse Public License v1.0
+ * which accompanies this distribution, and is available at
+ * http://www.eclipse.org/legal/epl-v10.html
+ *
+ * Contributors:
+ *     Red Hat Inc. - initial API and implementation
+ *******************************************************************************/
 package org.eclipse.pde.apitools.ant.internal;
 
 import java.util.HashMap;
@@ -10,6 +20,10 @@ import org.eclipse.pde.api.tools.internal.provisional.model.IApiBaseline;
 import org.eclipse.pde.api.tools.internal.provisional.model.IApiComponent;
 import org.eclipse.pde.apitools.ant.util.BaselineUtils;
 
+/*
+ * This class is not fully tested at this time and is not advised
+ * to be used until further notice. 
+ */
 public class IncrementalBaselineAnalysisRunner extends AbstractAnalysisRunner {
 	public static final String SUMMARY_REPORT_NAME = "ANALYSIS_SUMMARY";
 	private static final String REFERENCE_BASE = "referenceBase";

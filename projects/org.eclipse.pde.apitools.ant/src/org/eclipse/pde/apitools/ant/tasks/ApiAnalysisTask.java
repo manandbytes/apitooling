@@ -1,3 +1,13 @@
+/*******************************************************************************
+ * Copyright (c) 2013 Red Hat Inc. and others.
+ * All rights reserved. This program and the accompanying materials
+ * are made available under the terms of the Eclipse Public License v1.0
+ * which accompanies this distribution, and is available at
+ * http://www.eclipse.org/legal/epl-v10.html
+ *
+ * Contributors:
+ *     Red Hat Inc. - initial API and implementation
+ *******************************************************************************/
 package org.eclipse.pde.apitools.ant.tasks;
 
 import java.io.File;
@@ -6,61 +16,51 @@ import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.Properties;
 
 import org.apache.tools.ant.BuildException;
-import org.eclipse.ant.core.Task;
 import org.eclipse.osgi.util.NLS;
 import org.eclipse.pde.apitools.ant.internal.ApiAnalysisReport;
 import org.eclipse.pde.apitools.ant.internal.ApiAnalysisReport.AnalysisSkippedReport;
 import org.eclipse.pde.apitools.ant.internal.ApiAnalysisRunner;
-import org.eclipse.pde.apitools.ant.internal.RootReport;
+import org.eclipse.pde.apitools.ant.internal.IgnoredReport;
 import org.eclipse.pde.apitools.ant.tasks.old.Messages;
-import org.eclipse.pde.apitools.ant.util.IMemento;
-import org.eclipse.pde.apitools.ant.util.IOUtil;
 import org.eclipse.pde.apitools.ant.util.ReportUtils;
 import org.eclipse.pde.apitools.ant.util.ToolingException;
 
-public class ApiAnalysisTask extends Task {
-	public static final String SUMMARY_REPORT_NAME = "ANALYSIS_SUMMARY";
-	
-	private boolean debug = false;
-	private String filters;
-	private Properties properties;
-	private String currentBaselineLocation;
-	private String referenceBaseline;
-	private String reports;
-	private String includeListLocation;
-	private String excludeListLocation;
-	private String styleSheet;
-	private boolean skipNonApi = false;
+public class ApiAnalysisTask extends AbstractComparisonTask {
+	public static final String REPORT_NAME = "analysisReport.xml";
+	public static final String ANALYSIS_SKIPPED_REPORT_NAME = "apiAnalysisSkippedBundles.xml";
 	
 	public void execute() throws BuildException {
 		checkArgs();
 		
+		if( debug )
+			System.out.println("\nRunning API Analysis");
+		
 		// Generate the reports
 		ApiAnalysisRunner runner = 
-				new ApiAnalysisRunner(referenceBaseline, currentBaselineLocation, 
+				new ApiAnalysisRunner(referenceBaseline, referenceBaseline, 
 						reports, filters,  properties, 
 						skipNonApi, styleSheet,
 						includeListLocation, excludeListLocation, debug);
 		HashMap<String, ApiAnalysisReport> reports = runner.generateReports();
 		
+		if( debug )
+			System.out.println("Generating API Analysis Reports");
+
 		// Iterate and save the reports for each bundle
 		Iterator<String> i = reports.keySet().iterator();
-		ArrayList<AnalysisSkippedReport> ignored = new ArrayList<AnalysisSkippedReport>();
 		while(i.hasNext()) {
 			try {
 				String id = i.next();
 				ApiAnalysisReport report = reports.get(id);
-				if( report instanceof AnalysisSkippedReport) {
-					ignored.add((AnalysisSkippedReport)report);
-					continue;
+				if( !(report instanceof AnalysisSkippedReport)) {
+					File file = new File(this.reports, id);
+					File file2 = new File(file, REPORT_NAME);
+					if( debug ) 
+						System.out.println("Saving report to " + file2.getAbsolutePath());
+					ReportUtils.saveReport(report, file2);
 				}
-				File file = new File(this.reports, id);
-				File file2 = new File(file, "analysisReport.xml");
-				System.out.println("Saving report to " + file2.getAbsolutePath());
-				ReportUtils.saveReport(report, file2);
 			} catch(ToolingException ioe) {
 				throw new BuildException(ioe);
 			}
@@ -68,34 +68,17 @@ public class ApiAnalysisTask extends Task {
 		
 		// Add any skipped / not-analyzed bundle to a file
 		try {
-			IgnoredReport report = new IgnoredReport(ignored);
-			ReportUtils.saveReport(report, new File(this.reports, "apiAnalysisSkippedBundles.xml"));
+			IgnoredReport report = new IgnoredReport(findSkippedReports(reports));
+			ReportUtils.saveReport(report, new File(this.reports, ANALYSIS_SKIPPED_REPORT_NAME));
 		} catch(ToolingException ioe) {
 			throw new BuildException(ioe);
 		}
 
 	}
 	
-	public static class IgnoredReport extends RootReport {
-		ArrayList<AnalysisSkippedReport> list;
-		public IgnoredReport(ArrayList<AnalysisSkippedReport> ignored) {
-			super("report");
-			this.list = ignored;
-		}
-		protected void fillMemento(IMemento parentContext) {
-			Iterator<AnalysisSkippedReport> i = list.iterator();
-			while(i.hasNext()) {
-				AnalysisSkippedReport asr = i.next();
-				IMemento next = parentContext.createChild("bundle");
-				next.putString("name", asr.getId());
-				next.putString("cause", asr.getCause());
-			}
-		}
-	}
-	
 	protected void checkArgs() throws BuildException {
 		if (this.referenceBaseline == null
-				|| this.currentBaselineLocation == null
+				|| this.referenceBaseline == null
 				|| this.reports == null) {
 			StringWriter out = new StringWriter();
 			PrintWriter writer = new PrintWriter(out);
@@ -103,7 +86,7 @@ public class ApiAnalysisTask extends Task {
 				NLS.bind(Messages.printArguments,
 					new String[] {
 						this.referenceBaseline,
-						this.currentBaselineLocation,
+						this.referenceBaseline,
 						this.reports,
 					})
 			);
@@ -112,175 +95,4 @@ public class ApiAnalysisTask extends Task {
 			throw new BuildException(String.valueOf(out.getBuffer()));
 		}
 	}	
-
-	
-	/**
-	 * Set the exclude list location.
-	 * 
-	 * <p>The exclude list is used to know what bundles should excluded from the xml report generated by the task
-	 * execution. Lines starting with '#' are ignored from the excluded elements.</p>
-	 * <p>The format of the exclude list file looks like this:</p>
-	 * <pre>
-	 * # DOC BUNDLES
-	 * org.eclipse.jdt.doc.isv
-	 * org.eclipse.jdt.doc.user
-	 * org.eclipse.pde.doc.user
-	 * org.eclipse.platform.doc.isv
-	 * org.eclipse.platform.doc.user
-	 * # NON-ECLIPSE BUNDLES
-	 * com.ibm.icu
-	 * com.jcraft.jsch
-	 * javax.servlet
-	 * javax.servlet.jsp
-	 * ...
-	 * </pre>
-	 * <p>The location is set using an absolute path.</p>
-	 *
-	 * @param excludeListLocation the given location for the excluded list file
-	 */
-	public void setExcludeList(String excludeListLocation) {
-		this.excludeListLocation = excludeListLocation;
-	}
-	
-	/**
-	 * Set the include list location.
-	 * 
-	 * <p>The include list is used to know what bundles should included from the xml report generated by the task
-	 * execution. Lines starting with '#' are ignored from the included elements.</p>
-	 * <p>The format of the include list file looks like this:</p>
-	 * <pre>
-	 * # DOC BUNDLES
-	 * org.eclipse.jdt.doc.isv
-	 * org.eclipse.jdt.doc.user
-	 * org.eclipse.pde.doc.user
-	 * org.eclipse.platform.doc.isv
-	 * org.eclipse.platform.doc.user
-	 * # NON-ECLIPSE BUNDLES
-	 * com.ibm.icu
-	 * com.jcraft.jsch
-	 * javax.servlet
-	 * javax.servlet.jsp
-	 * ...
-	 * </pre>
-	 * <p>The location is set using an absolute path.</p>
-	 *
-	 * @param includeListLocation the given location for the included list file
-	 */
-	public void setIncludeList(String includeListLocation) {
-		this.includeListLocation = includeListLocation;
-	}
-
-
-	/**
-	 * Set the root directory of API filters to use during the analysis.
-	 * 
-	 * <p>The argument is the root directory of the .api_filters files that should be used to filter potential
-	 * problems created by the API Tools analysis. The root needs to contain the following structure:</p>
-	 * <pre>
-	 * root
-	 *  |
-	 *  +-- component name (i.e. org.eclipse.jface)
-	 *         |
-	 *         +--- .api_filters
-	 * </pre>
-	 *
-	 * @param filters the root of the .api_filters files
-	 */
-	public void setFilters(String filters) {
-		this.filters = filters; 
-	}
-	/**
-	 * Set the preferences for the task.
-	 * 
-	 * <p>The preferences are used to configure problem severities. Problem severities have
-	 * three possible values: Ignore, Warning, or Error. The set of problems detected is defined
-	 * by corresponding problem preference keys in API tools.</p>
-	 * <p>If the given location doesn't exist, the preferences won't be set.</p>
-	 * <p>Lines starting with '#' are ignored. The format of the preferences file looks like this:</p>
-	 * <pre>
-	 * #Thu Nov 20 17:35:06 EST 2008
-	 * ANNOTATION_ELEMENT_TYPE_ADDED_METHOD_WITHOUT_DEFAULT_VALUE=Ignore
-	 * ANNOTATION_ELEMENT_TYPE_CHANGED_TYPE_CONVERSION=Ignore
-	 * ...
-	 * </pre>
-	 * <p>The keys can be found in {@link org.eclipse.pde.api.tools.internal.provisional.problems.IApiProblemTypes}.</p>
-	 * <p>The location is set using an absolute path.</p>
-	 *
-	 * @param preferencesLocation the location of the preference file
-	 */
-	public void setPreferences(String preferencesLocation) {
-		this.properties = IOUtil.readPropertiesFile(preferencesLocation); 
-	}
-
-	
-	/**
-	 * Set the location of the reference baseline.
-	 * 
-	 * <p>It can be a .zip, .jar, .tgz, .tar.gz file, or a directory that corresponds to 
-	 * the Eclipse installation folder. This is the directory is which you can find the 
-	 * Eclipse executable.
-	 * </p>
-	 * <p>The location is set using an absolute path.</p>
-	 *
-	 * @param baselineLocation the given location for the reference baseline to analyze
-	 */
-	public void setBaseline(String baselineLocation) {
-		this.referenceBaseline = baselineLocation;
-	}
-	/**
-	 * Set the output location where the reports will be generated.
-	 * 
-	 * <p>Once the task is completed, reports are available in this directory using a structure
-	 * similar to the filter root. A sub-folder is created for each component that has problems
-	 * to be reported. Each sub-folder contains a file called "report.xml". </p>
-	 * 
-	 * <p>A special folder called "allNonApiBundles" is also created in this folder that contains a xml file called
-	 * "report.xml". This file lists all the bundles that are not using the API Tools nature.</p>
-	 * 
-	 * @param baselineLocation the given location for the reference baseline to analyze
-	 */
-	public void setReport(String reportLocation) {
-		this.reports = reportLocation;
-	}
-	/**
-	 * Set the location of the current product or baseline that you want to compare against
-	 * the reference baseline.
-	 * 
-	 * <p>It can be a .zip, .jar, .tgz, .tar.gz file, or a directory that corresponds to 
-	 * the Eclipse installation folder. This is the directory is which you can find the 
-	 * Eclipse executable.
-	 * </p>
-	 *
-	 * @param baselineLocation the given location for the baseline to analyze
-	 */
-	public void setProfile(String baselineLocation) {
-		this.currentBaselineLocation = baselineLocation;
-	}
-	
-	
-	/**
-	 * Set whether the task runs in debug mode
-	 * @param debug
-	 */
-	public void setDebug(boolean debug) {
-		this.debug = debug;
-	}
-	
-	/**
-	 * Set the location of a stylesheet file which should be referenced by the reports
-	 * @param styleSheet
-	 */
-	public void setStyleSheet(String styleSheet) {
-		this.styleSheet = styleSheet;
-	}
-	
-	/**
-	 * Do you wish to generate empty reports for skipping 
-	 * a non-api bundle?
-	 * 
-	 * @param b true if we should skip reports, false if generate all
-	 */
-	public void setSkipNonApi(boolean b) {
-		this.skipNonApi = b;
-	}
 }

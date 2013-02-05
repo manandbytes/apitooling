@@ -1,3 +1,13 @@
+/*******************************************************************************
+ * Copyright (c) 2013 Red Hat Inc. and others.
+ * All rights reserved. This program and the accompanying materials
+ * are made available under the terms of the Eclipse Public License v1.0
+ * which accompanies this distribution, and is available at
+ * http://www.eclipse.org/legal/epl-v10.html
+ *
+ * Contributors:
+ *     Red Hat Inc. - initial API and implementation
+ *******************************************************************************/
 package org.eclipse.pde.apitools.ant.tasks;
 
 import java.io.File;
@@ -24,7 +34,6 @@ public class DebugBaselineTask extends Task {
 	private String reports;
 	private String includeListLocation;
 	private String excludeListLocation;
-	private IApiComponent[] filtered;
 	
 	/**
 	 * Execute this ant task using the baseline, reports, and other data set via setter methods
