@@ -9,7 +9,7 @@
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
 
-package org.eclipse.pde.apitools.ant.tasks.old;
+package org.eclipse.pde.apitools.ant.tasks;
 
 import java.io.File;
 import java.io.PrintWriter;

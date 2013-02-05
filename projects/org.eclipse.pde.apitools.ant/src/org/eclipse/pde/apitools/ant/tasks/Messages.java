@@ -8,7 +8,7 @@
  * Contributors:
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
-package org.eclipse.pde.apitools.ant.tasks.old;
+package org.eclipse.pde.apitools.ant.tasks;
 
 import org.eclipse.osgi.util.NLS;
 

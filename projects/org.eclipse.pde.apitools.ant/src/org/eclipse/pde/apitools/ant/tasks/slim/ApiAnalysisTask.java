@@ -8,7 +8,7 @@
  * Contributors:
  *     Red Hat Inc. - initial API and implementation
  *******************************************************************************/
-package org.eclipse.pde.apitools.ant.tasks;
+package org.eclipse.pde.apitools.ant.tasks.slim;
 
 import java.io.File;
 import java.io.PrintWriter;
@@ -23,7 +23,6 @@ import org.eclipse.pde.apitools.ant.internal.ApiAnalysisReport;
 import org.eclipse.pde.apitools.ant.internal.ApiAnalysisReport.AnalysisSkippedReport;
 import org.eclipse.pde.apitools.ant.internal.ApiAnalysisRunner;
 import org.eclipse.pde.apitools.ant.internal.IgnoredReport;
-import org.eclipse.pde.apitools.ant.tasks.old.Messages;
 import org.eclipse.pde.apitools.ant.util.ReportUtils;
 import org.eclipse.pde.apitools.ant.util.ToolingException;
 

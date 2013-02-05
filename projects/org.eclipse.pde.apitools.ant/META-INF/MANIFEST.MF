@@ -19,5 +19,5 @@ Bundle-RequiredExecutionEnvironment: JavaSE-1.6
 Export-Package: org.eclipse.pde.apitools.ant,
  org.eclipse.pde.apitools.ant.internal,
  org.eclipse.pde.apitools.ant.tasks,
- org.eclipse.pde.apitools.ant.tasks.old,
+ org.eclipse.pde.apitools.ant.tasks.slim,
  org.eclipse.pde.apitools.ant.util

@@ -41,7 +41,7 @@
 		includelist="${includesFile}"
 		preferences="${preferences}"
 		debug="true"
-		styleSheet="../../web/analysis.xsl"
+		styleSheet="../../../web/analysis.xsl"
 	/>
 
 	<apitools.breakageTest

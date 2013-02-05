@@ -35,7 +35,7 @@ import org.eclipse.pde.api.tools.internal.provisional.model.IApiComponent;
 import org.eclipse.pde.api.tools.internal.util.FilteredElements;
 import org.eclipse.pde.api.tools.internal.util.TarException;
 import org.eclipse.pde.api.tools.internal.util.Util;
-import org.eclipse.pde.apitools.ant.tasks.old.Messages;
+import org.eclipse.pde.apitools.ant.tasks.Messages;
 
 public class BaselineUtils {
 	private static final String ECLIPSE_FOLDER_NAME = "eclipse"; //$NON-NLS-1$

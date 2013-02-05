@@ -18,7 +18,7 @@ import java.io.IOException;
 import org.eclipse.osgi.util.NLS;
 import org.eclipse.pde.apitools.ant.internal.ApiAnalysisReport;
 import org.eclipse.pde.apitools.ant.internal.RootReport;
-import org.eclipse.pde.apitools.ant.tasks.old.Messages;
+import org.eclipse.pde.apitools.ant.tasks.Messages;
 
 public class ReportUtils {
 	

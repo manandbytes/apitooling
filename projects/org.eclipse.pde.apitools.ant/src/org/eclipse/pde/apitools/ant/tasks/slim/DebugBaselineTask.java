@@ -8,7 +8,7 @@
  * Contributors:
  *     Red Hat Inc. - initial API and implementation
  *******************************************************************************/
-package org.eclipse.pde.apitools.ant.tasks;
+package org.eclipse.pde.apitools.ant.tasks.slim;
 
 import java.io.File;
 import java.io.PrintWriter;
@@ -21,7 +21,7 @@ import org.eclipse.pde.api.tools.internal.provisional.model.IApiBaseline;
 import org.eclipse.pde.api.tools.internal.provisional.model.IApiComponent;
 import org.eclipse.pde.apitools.ant.internal.BaselineResolutionDebugger;
 import org.eclipse.pde.apitools.ant.internal.RootReport;
-import org.eclipse.pde.apitools.ant.tasks.old.Messages;
+import org.eclipse.pde.apitools.ant.tasks.Messages;
 import org.eclipse.pde.apitools.ant.util.BaselineUtils;
 import org.eclipse.pde.apitools.ant.util.ReportUtils;
 import org.eclipse.pde.apitools.ant.util.ToolingException;

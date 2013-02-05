@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2010, 2012 IBM Corporation and others.
+ * Copyright (c) 2009, 2012 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -8,24 +8,24 @@
  * Contributors:
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
-package org.eclipse.pde.apitools.ant.tasks.old;
+package org.eclipse.pde.apitools.ant.tasks;
 
 import java.io.File;
 
 import org.apache.tools.ant.BuildException;
 import org.eclipse.osgi.util.NLS;
 import org.eclipse.pde.api.tools.internal.provisional.ApiPlugin;
-import org.eclipse.pde.api.tools.internal.search.ConsumerReportConvertor;
+import org.eclipse.pde.api.tools.internal.search.UseReportConverter;
 import org.eclipse.pde.api.tools.internal.util.Util;
 
 /**
- * Task to convert a report generated from {@link ApiUseTask} to HTML.  References to API/internals are grouped
- * by the bundle that used them (Consumers).
+ * Default task for converting the XML output from the apitooling.apiuse ant task
+ * to HTML
  * 
- * @since 1.0.300
- * @see ApiUseTask
+ * @since 1.0.0
+ * @noinstantiate This class is not intended to be instantiated by clients.
  */
-public class ApiConsumerUseReportConversionTask extends CommonUtilsTask {
+public final class ApiUseReportConversionTask extends CommonUtilsTask {
 
 	private String xmlReportsLocation = null;
 	private String htmlReportsLocation = null;
@@ -113,7 +113,7 @@ public class ApiConsumerUseReportConversionTask extends CommonUtilsTask {
 		}
 		try {
 			Util.delete(new File(this.htmlReportsLocation));
-			ConsumerReportConvertor converter = new ConsumerReportConvertor(this.htmlReportsLocation, this.xmlReportsLocation, this.toPatterns, this.filterPatterns);
+			UseReportConverter converter = new UseReportConverter(this.htmlReportsLocation, this.xmlReportsLocation, this.toPatterns, this.filterPatterns);
 			ApiPlugin.DEBUG_USE_REPORT_CONVERTER = this.debug;
 			converter.convert(this.xsltFileLocation, null);
 			File index = converter.getReportIndex();

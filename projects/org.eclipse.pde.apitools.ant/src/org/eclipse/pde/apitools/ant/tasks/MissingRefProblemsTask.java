@@ -8,7 +8,7 @@
  * Contributors:
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
-package org.eclipse.pde.apitools.ant.tasks.old;
+package org.eclipse.pde.apitools.ant.tasks;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedWriter;

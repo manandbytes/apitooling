@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2011, 2012 IBM Corporation and others.
+ * Copyright (c) 2010, 2012 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -8,27 +8,31 @@
  * Contributors:
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
-package org.eclipse.pde.apitools.ant.tasks.old;
+package org.eclipse.pde.apitools.ant.tasks;
 
 import java.io.File;
 
 import org.apache.tools.ant.BuildException;
-import org.eclipse.core.runtime.NullProgressMonitor;
 import org.eclipse.osgi.util.NLS;
 import org.eclipse.pde.api.tools.internal.provisional.ApiPlugin;
-import org.eclipse.pde.api.tools.internal.search.MissingRefReportConverter;
+import org.eclipse.pde.api.tools.internal.search.ConsumerReportConvertor;
 import org.eclipse.pde.api.tools.internal.util.Util;
 
 /**
- * Default task for converting the XML output from the apitooling.apiuse ants to HTML
+ * Task to convert a report generated from {@link ApiUseTask} to HTML.  References to API/internals are grouped
+ * by the bundle that used them (Consumers).
  * 
- * @noinstantiate This class is not intended to be instantiated by clients.
+ * @since 1.0.300
+ * @see ApiUseTask
  */
-public final class MissingRefProblemsReportConversionTask extends CommonUtilsTask {
+public class ApiConsumerUseReportConversionTask extends CommonUtilsTask {
 
 	private String xmlReportsLocation = null;
 	private String htmlReportsLocation = null;
-
+	private String xsltFileLocation = null;
+	private String[] filterPatterns = null;
+	private String[] toPatterns = null;
+	
 	/**
 	 * Set the debug value.
 	 * <p>The possible values are: <code>true</code>, <code>false</code></p>
@@ -37,9 +41,8 @@ public final class MissingRefProblemsReportConversionTask extends CommonUtilsTas
 	 * @param debugValue the given debug value
 	 */
 	public void setDebug(String debugValue) {
-		this.debug = Boolean.toString(true).equals(debugValue);
+		this.debug = Boolean.toString(true).equals(debugValue); 
 	}
-
 	/**
 	 * Set the location where the html reports are generated.
 	 * 
@@ -52,7 +55,6 @@ public final class MissingRefProblemsReportConversionTask extends CommonUtilsTas
 	public void setHtmlFiles(String htmlFilesLocation) {
 		this.htmlReportsLocation = htmlFilesLocation;
 	}
-
 	/**
 	 * Set the location where the xml reports are retrieved.
 	 * 
@@ -64,28 +66,62 @@ public final class MissingRefProblemsReportConversionTask extends CommonUtilsTas
 		this.xmlReportsLocation = xmlFilesLocation;
 	}
 	
+	/**
+	 * Set the group of {@link String} patterns to use as heuristics to filter
+	 * references to names matching any of the given patterns during the report conversion
+	 * @param patterns
+	 */
+	public void setToFilterPatterns(String patterns) {
+		this.toPatterns = parsePatterns(patterns);
+	}
+	
+	/**
+	 * Set the group of {@link String} patterns to use as heuristics to filter
+	 * references from names matching any of the given patterns during the report conversion
+	 * @param patterns
+	 */
+	public void setFilterPatterns(String patterns) {
+		this.filterPatterns = parsePatterns(patterns);	
+	}
+	
+	/**
+	 * Sets the location of the XSLT file to use in the conversion of the XML
+	 * the HTML.
+	 * 
+	 * <p>This is optional. If none is specified, then a default one is used.</p>
+	 * 
+	 * <p>The location is an absolute path.</p>
+	 * 
+	 * @param xsltFileLocation
+	 */
+	public void setXSLTFile(String xsltFileLocation) {
+		this.xsltFileLocation = xsltFileLocation;
+	}
+	
 	/* (non-Javadoc)
 	 * @see org.apache.tools.ant.Task#execute()
 	 */
 	public void execute() throws BuildException {
-		if(this.xmlReportsLocation == null) {
-			throw new BuildException(Messages.no_xml_location);
-		}
-		if(this.htmlReportsLocation == null) {
-			throw new BuildException(Messages.no_html_location);
-		}
 		if (this.debug) {
 			System.out.println("XML report location: " + this.xmlReportsLocation); //$NON-NLS-1$
 			System.out.println("HTML report location: " + this.htmlReportsLocation); //$NON-NLS-1$
+			if (this.xsltFileLocation == null) {
+				System.out.println("No XSLT file specified: using default"); //$NON-NLS-1$}
+			} else {
+				System.out.println("XSLT file location: " + this.xsltFileLocation); //$NON-NLS-1$}
+			}
 		}
 		try {
 			Util.delete(new File(this.htmlReportsLocation));
-			MissingRefReportConverter converter = new MissingRefReportConverter(this.htmlReportsLocation, this.xmlReportsLocation);
+			ConsumerReportConvertor converter = new ConsumerReportConvertor(this.htmlReportsLocation, this.xmlReportsLocation, this.toPatterns, this.filterPatterns);
 			ApiPlugin.DEBUG_USE_REPORT_CONVERTER = this.debug;
-			converter.convert(null, new NullProgressMonitor());
+			converter.convert(this.xsltFileLocation, null);
 			File index = converter.getReportIndex();
-			System.out.println(NLS.bind(Messages.ApiUseReportConversionTask_conversion_complete, index.getAbsolutePath()));
-		} catch (Exception e) {
+			System.out.println(NLS.bind(
+					Messages.ApiUseReportConversionTask_conversion_complete,
+					index.getAbsolutePath()));
+		}
+		catch(Exception e) {
 			throw new BuildException(e);
 		}
 	}

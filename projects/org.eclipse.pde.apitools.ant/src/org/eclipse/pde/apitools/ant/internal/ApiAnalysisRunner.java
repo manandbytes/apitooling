@@ -17,7 +17,7 @@ import org.apache.tools.ant.BuildException;
 import org.eclipse.pde.api.tools.internal.provisional.model.IApiBaseline;
 import org.eclipse.pde.api.tools.internal.provisional.model.IApiComponent;
 import org.eclipse.pde.api.tools.internal.util.FilteredElements;
-import org.eclipse.pde.apitools.ant.tasks.old.CommonUtilsTask;
+import org.eclipse.pde.apitools.ant.tasks.CommonUtilsTask;
 import org.eclipse.pde.apitools.ant.util.BaselineUtils;
 
 public class ApiAnalysisRunner extends AbstractAnalysisRunner {

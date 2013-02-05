@@ -37,6 +37,8 @@ public abstract class AbstractAnalysisRunner {
 		this.reports = reports;
 		this.filters = filters;
 		this.properties = properties;
+		this.skipNonApi = skipNonApi;
+		this.xslLoc = xslLoc;
 		this.debug = debug;
 	}
 	
@@ -97,7 +99,7 @@ public abstract class AbstractAnalysisRunner {
 				
 				// Show even if empty. Otherwise users get confused
 				reports.put(name, new ApiAnalysisReport(
-						name, problems, properties));
+						name, problems, properties, xslLoc));
 			} catch(RuntimeException e) {
 				ApiPlugin.log(e);
 				throw e;
