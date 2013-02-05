@@ -51,7 +51,7 @@
                 includelist="${includesFile}"
                 preferences="${preferences}"
                 debug="true"
-		styleSheet="../../web/analysis.xsl"
+		styleSheet="../../web/breakage.xsl"
 	/>
   </target>
 </project>
