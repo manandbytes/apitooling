@@ -10,6 +10,7 @@
  *******************************************************************************/
 package org.eclipse.pde.apitools.ant.tasks.slim;
 
+import java.io.File;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.ArrayList;
@@ -22,6 +23,7 @@ import org.eclipse.ant.core.Task;
 import org.eclipse.osgi.util.NLS;
 import org.eclipse.pde.apitools.ant.internal.ApiAnalysisReport;
 import org.eclipse.pde.apitools.ant.internal.ApiAnalysisReport.AnalysisSkippedReport;
+import org.eclipse.pde.apitools.ant.internal.ApiAnalysisRunner;
 import org.eclipse.pde.apitools.ant.tasks.Messages;
 import org.eclipse.pde.apitools.ant.util.IOUtil;
 
@@ -54,6 +56,13 @@ public abstract class AbstractComparisonTask extends Task {
 	protected boolean skipNonApi = false;
 	protected boolean debug;
 	
+	
+	/*
+	 * A non-ant-based field for consumers who wish to set a profile
+	 * as an array of File objects
+	 */
+	protected File[] profileBaselineAsFileArray;
+	
 	protected ArrayList<AnalysisSkippedReport> findSkippedReports(HashMap<String, ApiAnalysisReport> reportMap) {
 		ArrayList<AnalysisSkippedReport> ignored = new ArrayList<AnalysisSkippedReport>();
 		Iterator<String> i = reportMap.keySet().iterator();
@@ -72,16 +81,20 @@ public abstract class AbstractComparisonTask extends Task {
 	 * 
 	 * @return
 	 */
-	protected String[] getRequiredArguments() {
-		return new String[] {
+	protected Object[] getRequiredArguments() {
+		// The required arguments by default are a 
+		// reference baseline, profile baseline, 
+		// and reports folder. 
+		// However profileBaseline may be replaced by profileBaselineAsFileArray
+		return new Object[] {
 				this.referenceBaseline,
-				this.referenceBaseline,
+				this.profileBaseline == null ? profileBaselineAsFileArray : profileBaseline,
 				this.reports
 		};
 	}
 	
 	protected void checkArgs() throws BuildException {
-		String[] required = getRequiredArguments();
+		Object[] required = getRequiredArguments();
 		if( hasEmptyArg(required)) {
 			StringWriter out = new StringWriter();
 			PrintWriter writer = new PrintWriter(out);
@@ -92,12 +105,15 @@ public abstract class AbstractComparisonTask extends Task {
 		}
 	}
 	
-	protected boolean hasEmptyArg(String[] s) {
+	protected boolean hasEmptyArg(Object[] s) {
 		if( s == null )
 			return true;
-		for( int i = 0; i < s.length; i++ )
-			if( s[i] == null || s[i].length() == 0)
+		for( int i = 0; i < s.length; i++ ) {
+			if( s[i] == null )
 				return true;
+			if( s[i] instanceof String && ((String)s[i]).length() == 0)
+				return true;
+		}
 		return false;
 	}
 
@@ -106,7 +122,11 @@ public abstract class AbstractComparisonTask extends Task {
 	 */
 	protected void printArgs() {
 		System.out.println("reference : " + this.referenceBaseline); //$NON-NLS-1$
-		System.out.println("baseline to compare : " + this.profileBaseline); //$NON-NLS-1$
+		if( this.profileBaseline != null ) {
+			System.out.println("Profile baseline to compare : " + this.profileBaseline); //$NON-NLS-1$
+		} else {
+			System.out.println("Profile baseline set as java.io.File array.");
+		}
 		System.out.println("report location : " + this.reports); //$NON-NLS-1$
 		if (this.excludeListLocation != null) {
 			System.out.println("exclude list location : " + this.excludeListLocation); //$NON-NLS-1$
@@ -130,7 +150,31 @@ public abstract class AbstractComparisonTask extends Task {
 		}
 	}
 	
+	/*
+	 * A utility method to create an analysis runner from
+	 * the provided details.
+	 */
+	protected ApiAnalysisRunner createAnalysisRunner() {
+		// Our profileBaseline may be either a string representing a folder
+		// or a java.io.File array. 
+		if( profileBaseline != null )
+			// String folder
+			return new ApiAnalysisRunner(referenceBaseline, profileBaseline, 
+					reports, filters,  properties, 
+					skipNonApi, styleSheet,
+					includeListLocation, excludeListLocation, debug);
+		else {
+			// java.io.File array
+			return new ApiAnalysisRunner(referenceBaseline, 
+					profileBaselineAsFileArray, 
+					reports, filters,  properties, 
+					skipNonApi, styleSheet,
+					includeListLocation, excludeListLocation, debug);
+		}
+	}
 
+	
+	
 	/**
 	 * Set the location of the reference baseline.
 	 * 
@@ -155,6 +199,19 @@ public abstract class AbstractComparisonTask extends Task {
 	public void setProfile(String nightly) {
 		this.profileBaseline = nightly;
 	}
+
+	
+	/**
+	 * The alternate baseline expressed as an array of 
+	 * java.io.File objects
+	 * 
+	 * @param profile
+	 */
+	public void setFileProfile(File[] fileArr) {
+		this.profileBaselineAsFileArray = fileArr;
+	}
+
+	
 	
 
 	/**

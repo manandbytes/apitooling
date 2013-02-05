@@ -38,11 +38,7 @@ public class ApiAnalysisTask extends AbstractComparisonTask {
 		}
 		
 		// Generate the reports
-		ApiAnalysisRunner runner = 
-				new ApiAnalysisRunner(referenceBaseline, referenceBaseline, 
-						reports, filters,  properties, 
-						skipNonApi, styleSheet,
-						includeListLocation, excludeListLocation, debug);
+		ApiAnalysisRunner runner = createAnalysisRunner();
 		HashMap<String, ApiAnalysisReport> reports = runner.generateReports();
 		
 		if( debug )

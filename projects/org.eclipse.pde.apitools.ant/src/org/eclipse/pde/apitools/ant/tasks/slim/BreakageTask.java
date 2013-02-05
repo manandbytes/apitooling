@@ -11,13 +11,10 @@
 package org.eclipse.pde.apitools.ant.tasks.slim;
 
 import java.io.File;
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.util.HashMap;
 import java.util.Iterator;
 
 import org.apache.tools.ant.BuildException;
-import org.eclipse.osgi.util.NLS;
 import org.eclipse.pde.api.tools.internal.provisional.problems.IApiProblem;
 import org.eclipse.pde.apitools.ant.internal.ApiAnalysisReport;
 import org.eclipse.pde.apitools.ant.internal.ApiAnalysisReport.AnalysisSkippedReport;
@@ -60,11 +57,7 @@ public class BreakageTask extends AbstractComparisonTask {
 			System.out.println("Running API Breakage analysis");
 		}
 		
-		ApiAnalysisRunner runner = 
-				new ApiAnalysisRunner(referenceBaseline, profileBaseline, 
-						reports, filters,  properties, 
-						skipNonApi, styleSheet,
-						includeListLocation, excludeListLocation, debug);
+		ApiAnalysisRunner runner = createAnalysisRunner();
 		HashMap<String, ApiAnalysisReport> reports = runner.generateReports();
 		
 		if( debug ) {
