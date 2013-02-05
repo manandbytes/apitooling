@@ -30,12 +30,13 @@ import org.eclipse.pde.apitools.ant.util.ToolingException;
 public class ApiAnalysisTask extends AbstractComparisonTask {
 	public static final String REPORT_NAME = "analysisReport.xml";
 	public static final String ANALYSIS_SKIPPED_REPORT_NAME = "apiAnalysisSkippedBundles.xml";
-	
+
 	public void execute() throws BuildException {
 		checkArgs();
-		
-		if( debug )
+		if( debug ) {
+			printArgs();
 			System.out.println("\nRunning API Analysis");
+		}
 		
 		// Generate the reports
 		ApiAnalysisRunner runner = 
@@ -58,7 +59,7 @@ public class ApiAnalysisTask extends AbstractComparisonTask {
 					File file = new File(this.reports, id);
 					File file2 = new File(file, REPORT_NAME);
 					if( debug ) 
-						System.out.println("Saving report to " + file2.getAbsolutePath());
+						System.out.println("Saving report for bundle " + id + " to " + file2.getAbsolutePath());
 					ReportUtils.saveReport(report, file2);
 				}
 			} catch(ToolingException ioe) {
@@ -75,24 +76,4 @@ public class ApiAnalysisTask extends AbstractComparisonTask {
 		}
 
 	}
-	
-	protected void checkArgs() throws BuildException {
-		if (this.referenceBaseline == null
-				|| this.referenceBaseline == null
-				|| this.reports == null) {
-			StringWriter out = new StringWriter();
-			PrintWriter writer = new PrintWriter(out);
-			writer.println(
-				NLS.bind(Messages.printArguments,
-					new String[] {
-						this.referenceBaseline,
-						this.referenceBaseline,
-						this.reports,
-					})
-			);
-			writer.flush();
-			writer.close();
-			throw new BuildException(String.valueOf(out.getBuffer()));
-		}
-	}	
 }

@@ -51,38 +51,24 @@ public class BreakageTask extends AbstractComparisonTask {
 	public static final String BREAKAGE_REPORT = "breakageReport.xml";
 	public static final String BREAKAGE_ROOT_ELEMENT = "breakage";
 	public static final String BUNDLES_SKIPPED_REPORT = "breakageSkippedBundles.xml";
-	
-	protected void checkArgs() throws BuildException {
-		if (this.referenceBaseline == null
-				|| this.profileBaseline == null 
-				|| this.reports == null) {
-			StringWriter out = new StringWriter();
-			PrintWriter writer = new PrintWriter(out);
-			writer.println(
-				NLS.bind(Messages.printArguments,
-					new String[] {
-						this.referenceBaseline,
-						this.profileBaseline,
-						this.reports,
-					})
-			);
-			writer.flush();
-			writer.close();
-			throw new BuildException(String.valueOf(out.getBuffer()));
-		}
-	}	
 
 	public void execute() throws BuildException {
 		checkArgs();
+		printArgs();
+		
 		// Generate the reports
 		if( debug ) {
 			System.out.println("Running API Breakage analysis");
 		}
 		
-		HashMap<String, ApiAnalysisReport> reports = runAnalysis();
+		ApiAnalysisRunner runner = 
+				new ApiAnalysisRunner(referenceBaseline, profileBaseline, 
+						reports, filters,  properties, 
+						skipNonApi, styleSheet,
+						includeListLocation, excludeListLocation, debug);
+		HashMap<String, ApiAnalysisReport> reports = runner.generateReports();
 		
 		if( debug ) {
-			System.out.println("StyleSheet is " + styleSheet);
 			System.out.println("Generating API Breakage report for " + reports.size() + " bundles");
 		}
 		
@@ -92,15 +78,6 @@ public class BreakageTask extends AbstractComparisonTask {
 		if( debug ) {
 			System.out.println("API Breakage Task Complete");
 		}
-	}
-
-	protected HashMap<String, ApiAnalysisReport> runAnalysis() {
-		ApiAnalysisRunner runner = 
-				new ApiAnalysisRunner(referenceBaseline, profileBaseline, 
-						reports, filters,  properties, 
-						skipNonApi, styleSheet,
-						includeListLocation, excludeListLocation, debug);
-		return runner.generateReports();
 	}
 
 	protected void saveBreakageReport(HashMap<String, ApiAnalysisReport> reportMap) {

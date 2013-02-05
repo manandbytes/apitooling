@@ -16,6 +16,8 @@ import java.util.Properties;
 import org.apache.tools.ant.BuildException;
 import org.eclipse.pde.api.tools.internal.provisional.model.IApiBaseline;
 import org.eclipse.pde.api.tools.internal.provisional.model.IApiComponent;
+import org.eclipse.pde.api.tools.internal.util.FilteredElements;
+import org.eclipse.pde.apitools.ant.tasks.old.CommonUtilsTask;
 import org.eclipse.pde.apitools.ant.util.BaselineUtils;
 
 public class ApiAnalysisRunner extends AbstractAnalysisRunner {
@@ -41,22 +43,32 @@ public class ApiAnalysisRunner extends AbstractAnalysisRunner {
 	}
 	
 	public HashMap<String, ApiAnalysisReport> generateReports() throws BuildException {
-		
+		long time = System.currentTimeMillis();
+
+		if( debug )
+			System.out.println("Creating Reference Baseline...");
+
 		// Create two baselines
 		IApiBaseline refBase = BaselineUtils.createBaseline(
 				REFERENCE_BASE, referenceBaseline, null);
+		
+		if( debug )
+			System.out.println("Creating Profile Baseline...");
+
 		IApiBaseline currentBase = BaselineUtils.createBaseline(
 				CURRENT_BASE, currentBaselineLocation, null);
 		
 		if( debug )
-			System.out.println("Loading Baselines...");
+			System.out.println("Introspecting Inclusion and Exclusion patterns... ");
+
 		// Get all included elements AFTER the filters are applied
 		IApiComponent[] refIncluded = BaselineUtils.getFilteredElements(
 				refBase, includeListLocation, excludeListLocation);
 		IApiComponent[] curIncluded = BaselineUtils.getFilteredElements(
 				currentBase, includeListLocation, excludeListLocation);
+		
 		if( debug )
-			System.out.println("Finished Loading Baselines.");
+			System.out.println("Finished Loading Baselines in " + (System.currentTimeMillis() - time) + "ms");
 		return generateReports(refBase, refIncluded, curIncluded, properties);
 	}
 }

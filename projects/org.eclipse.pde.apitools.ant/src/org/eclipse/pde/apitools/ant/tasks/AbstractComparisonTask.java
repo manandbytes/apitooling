@@ -10,14 +10,19 @@
  *******************************************************************************/
 package org.eclipse.pde.apitools.ant.tasks;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Properties;
 
+import org.apache.tools.ant.BuildException;
 import org.eclipse.ant.core.Task;
+import org.eclipse.osgi.util.NLS;
 import org.eclipse.pde.apitools.ant.internal.ApiAnalysisReport;
 import org.eclipse.pde.apitools.ant.internal.ApiAnalysisReport.AnalysisSkippedReport;
+import org.eclipse.pde.apitools.ant.tasks.old.Messages;
 import org.eclipse.pde.apitools.ant.util.IOUtil;
 
 /**
@@ -61,6 +66,70 @@ public abstract class AbstractComparisonTask extends Task {
 		return ignored;
 	}
 
+	/**
+	 * By default, only two baselines and a report folder are required.
+	 * Subclasses may override.
+	 * 
+	 * @return
+	 */
+	protected String[] getRequiredArguments() {
+		return new String[] {
+				this.referenceBaseline,
+				this.referenceBaseline,
+				this.reports
+		};
+	}
+	
+	protected void checkArgs() throws BuildException {
+		String[] required = getRequiredArguments();
+		if( hasEmptyArg(required)) {
+			StringWriter out = new StringWriter();
+			PrintWriter writer = new PrintWriter(out);
+			writer.println(NLS.bind(Messages.printArguments, required));
+			writer.flush();
+			writer.close();
+			throw new BuildException(String.valueOf(out.getBuffer()));
+		}
+	}
+	
+	protected boolean hasEmptyArg(String[] s) {
+		if( s == null )
+			return true;
+		for( int i = 0; i < s.length; i++ )
+			if( s[i] == null || s[i].length() == 0)
+				return true;
+		return false;
+	}
+
+	/** 
+	 * Print the arguments 
+	 */
+	protected void printArgs() {
+		System.out.println("reference : " + this.referenceBaseline); //$NON-NLS-1$
+		System.out.println("baseline to compare : " + this.profileBaseline); //$NON-NLS-1$
+		System.out.println("report location : " + this.reports); //$NON-NLS-1$
+		if (this.excludeListLocation != null) {
+			System.out.println("exclude list location : " + this.excludeListLocation); //$NON-NLS-1$
+		} else {
+			System.out.println("No exclude list location"); //$NON-NLS-1$
+		}
+		if (this.includeListLocation != null) {
+			System.out.println("include list location : " + this.includeListLocation); //$NON-NLS-1$
+		} else {
+			System.out.println("No include list location"); //$NON-NLS-1$
+		}
+		if( this.filters != null ) {
+			System.out.println("Filters file: " + this.filters);
+		} else {
+			System.out.println("No filters file set.");
+		}
+		if( styleSheet != null ) {
+			System.out.println("Stylesheet location: " + this.styleSheet);
+		} else {
+			System.out.println("No stylesheet set.");
+		}
+	}
+	
 
 	/**
 	 * Set the location of the reference baseline.
