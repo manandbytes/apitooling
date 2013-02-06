@@ -69,6 +69,7 @@ public class ApiAnalysisTask extends AbstractComparisonTask {
 		} catch(ToolingException ioe) {
 			throw new BuildException(ioe);
 		}
-
+		
+		runner.disposeBaselines();
 	}
 }

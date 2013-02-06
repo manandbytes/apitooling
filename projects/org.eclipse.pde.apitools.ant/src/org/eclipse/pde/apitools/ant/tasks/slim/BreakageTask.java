@@ -70,6 +70,8 @@ public class BreakageTask extends AbstractComparisonTask {
 		if( debug ) {
 			System.out.println("API Breakage Task Complete");
 		}
+		
+		runner.disposeBaselines();
 	}
 
 	protected void saveBreakageReport(HashMap<String, ApiAnalysisReport> reportMap) {

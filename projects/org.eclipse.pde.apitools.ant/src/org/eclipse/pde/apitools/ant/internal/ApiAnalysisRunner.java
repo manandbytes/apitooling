@@ -31,6 +31,9 @@ public class ApiAnalysisRunner extends AbstractAnalysisRunner {
 	private String includeListLocation;
 	private String excludeListLocation;
 	
+	
+	private IApiBaseline refBaseline, profileBaseline;
+	
 	public ApiAnalysisRunner(String referenceBaseline, String profileBaselineLocation,
 			String reports, String filters, Properties properties,
 			boolean skipNonApi, String xslSheet,
@@ -40,6 +43,13 @@ public class ApiAnalysisRunner extends AbstractAnalysisRunner {
 		this.profileBaselineLocation = profileBaselineLocation;
 		this.includeListLocation = includeListLocation;
 		this.excludeListLocation = excludeListLocation;
+	}
+	
+	public void disposeBaselines() {
+		if( refBaseline != null )
+			refBaseline.dispose();
+		if( profileBaseline != null )
+			profileBaseline.dispose();
 	}
 
 	
@@ -62,7 +72,7 @@ public class ApiAnalysisRunner extends AbstractAnalysisRunner {
 			System.out.println("Creating Reference Baseline...");
 
 		// Create two baselines
-		IApiBaseline refBase = BaselineUtils.createBaseline(
+		refBaseline = BaselineUtils.createBaseline(
 				REFERENCE_BASE, referenceBaseline, null);
 		
 		if( debug )
@@ -70,12 +80,12 @@ public class ApiAnalysisRunner extends AbstractAnalysisRunner {
 
 		// The profile baseline can be set either through a folder
 		// Or a java.io.File array
-		IApiBaseline currentBase = null;
+		profileBaseline = null;
 		if( profileBaselineFiles == null ) {
-			currentBase = BaselineUtils.createBaseline(
+			profileBaseline = BaselineUtils.createBaseline(
 				CURRENT_BASE, profileBaselineLocation, null);
 		} else {
-			currentBase = BaselineUtils.createBaseline(CURRENT_BASE, profileBaselineFiles);
+			profileBaseline = BaselineUtils.createBaseline(CURRENT_BASE, profileBaselineFiles);
 		}
 		
 		if( debug )
@@ -83,12 +93,12 @@ public class ApiAnalysisRunner extends AbstractAnalysisRunner {
 
 		// Get all included elements AFTER the filters are applied
 		IApiComponent[] refIncluded = BaselineUtils.getFilteredElements(
-				refBase, includeListLocation, excludeListLocation);
+				refBaseline, includeListLocation, excludeListLocation);
 		IApiComponent[] curIncluded = BaselineUtils.getFilteredElements(
-				currentBase, includeListLocation, excludeListLocation);
+				profileBaseline, includeListLocation, excludeListLocation);
 		
 		if( debug )
 			System.out.println("Finished Loading Baselines in " + (System.currentTimeMillis() - time) + "ms");
-		return generateReports(refBase, refIncluded, curIncluded, properties);
+		return generateReports(refBaseline, refIncluded, curIncluded, properties);
 	}
 }
