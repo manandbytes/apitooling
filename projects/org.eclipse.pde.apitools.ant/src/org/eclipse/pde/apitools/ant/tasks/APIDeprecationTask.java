@@ -134,7 +134,6 @@ public class APIDeprecationTask extends CommonUtilsTask {
 		}
 		if (delta != ApiComparator.NO_DELTA) {
 			// dump the report in the appropriate folder
-			BufferedWriter writer = null;
 			File outputFile = new File(this.reportLocation);
 			if (outputFile.exists()) {
 				if (outputFile.isDirectory()){
@@ -152,6 +151,8 @@ public class APIDeprecationTask extends CommonUtilsTask {
 					}
 				}
 			}
+			
+			BufferedWriter writer = null;
 			try {
 				writer = new BufferedWriter(new FileWriter(outputFile));
 				FilterListDeltaVisitor visitor = new FilterListDeltaVisitor(excludedElements, includedElements, FilterListDeltaVisitor.CHECK_DEPRECATION);

@@ -27,17 +27,21 @@ public abstract class RootReport extends AbstractReport implements IStyleSheetPr
 	 */
 	public XMLMemento generateMemento() {
 		XMLMemento xml = XMLMemento.createWriteRoot(entityName);
-		
-		if( this instanceof IStyleSheetProvider) {
-			String s = ((IStyleSheetProvider)this).getStyleSheetPath();
-			if( s != null ) {
-				xml.addProcessingInstruction("xml-stylesheet",
-						"type=\"text/xsl\" href=\"" + s + "\"");
-			}
-		}
+		addStylesheetInstructions(xml);
 		fillMemento(xml);
 		return xml;
 	}
+	
+	protected void addStylesheetInstructions(XMLMemento memento) {
+		if( this instanceof IStyleSheetProvider) {
+			String s = ((IStyleSheetProvider)this).getStyleSheetPath();
+			if( s != null ) {
+				memento.addProcessingInstruction("xml-stylesheet",
+						"type=\"text/xsl\" href=\"" + s + "\"");
+			}
+		}
+	}
+	
 	public String getStyleSheetPath() {
 		return sheetPath;
 	}

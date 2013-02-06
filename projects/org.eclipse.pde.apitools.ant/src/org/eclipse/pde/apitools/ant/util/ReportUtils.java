@@ -75,10 +75,9 @@ public class ReportUtils {
 	} 
 
 	public static void saveMemento(XMLMemento reportMemento, File location ) throws ToolingException {
-
 		if( !location.getParentFile().exists()) {
 			if( !location.getParentFile().mkdirs() ) {
-				throw new ToolingException("Cannot create report folder: " + location.getAbsolutePath());
+				throw new ToolingException(NLS.bind(Messages.errorCreatingParentReportFile, location.getAbsolutePath()));
 			}
 		}
 		try {

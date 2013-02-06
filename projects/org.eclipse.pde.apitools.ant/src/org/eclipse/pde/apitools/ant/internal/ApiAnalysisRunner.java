@@ -15,8 +15,10 @@ import java.util.HashMap;
 import java.util.Properties;
 
 import org.apache.tools.ant.BuildException;
+import org.eclipse.pde.api.tools.internal.model.StubApiComponent;
 import org.eclipse.pde.api.tools.internal.provisional.model.IApiBaseline;
 import org.eclipse.pde.api.tools.internal.provisional.model.IApiComponent;
+import org.eclipse.pde.api.tools.internal.util.Util;
 import org.eclipse.pde.apitools.ant.util.BaselineUtils;
 
 public class ApiAnalysisRunner extends AbstractAnalysisRunner {
@@ -33,6 +35,7 @@ public class ApiAnalysisRunner extends AbstractAnalysisRunner {
 	
 	
 	private IApiBaseline refBaseline, profileBaseline;
+	private IApiComponent[] refIncluded, profileIncluded;
 	
 	public ApiAnalysisRunner(String referenceBaseline, String profileBaselineLocation,
 			String reports, String filters, Properties properties,
@@ -46,13 +49,34 @@ public class ApiAnalysisRunner extends AbstractAnalysisRunner {
 	}
 	
 	public void disposeBaselines() {
+		long time = System.currentTimeMillis();
 		if( refBaseline != null )
 			refBaseline.dispose();
 		if( profileBaseline != null )
 			profileBaseline.dispose();
+		StubApiComponent.disposeAllCaches();
+		if (this.debug) {
+			System.out.println("Cleanup : " + (System.currentTimeMillis() - time) + "ms"); //$NON-NLS-1$ //$NON-NLS-2$
+		}
+
 	}
 
+	public IApiBaseline getReferenceBaseline() {
+		return refBaseline;
+	}
 	
+	public IApiBaseline getProfileBaseline() {
+		return profileBaseline;
+	}
+
+	public IApiComponent[] getReferenceComponents() {
+		return refIncluded;
+	}
+	
+	public IApiComponent[] getProfileComponents() {
+		return profileIncluded;
+	}
+
 	public ApiAnalysisRunner(String referenceBaseline, 
 			File[] profileBaselineFiles,
 			String reports, String filters, Properties properties,
@@ -66,6 +90,27 @@ public class ApiAnalysisRunner extends AbstractAnalysisRunner {
 	}
 
 	public HashMap<String, ApiAnalysisReport> generateReports() throws BuildException {
+		createBaselines();
+		createInclusionArrays();
+		return generateReports(refBaseline, refIncluded, profileIncluded, properties);
+	}
+	
+	public void createInclusionArrays() {
+		long time = System.currentTimeMillis();
+		if( debug )
+			System.out.println("Introspecting Inclusion and Exclusion patterns... ");
+
+		// Get all included elements AFTER the filters are applied
+		refIncluded = BaselineUtils.getFilteredElements(
+				refBaseline, includeListLocation, excludeListLocation);
+		profileIncluded = BaselineUtils.getFilteredElements(
+				profileBaseline, includeListLocation, excludeListLocation);
+		if( debug ) {
+			System.out.println("Filtering Api Elements Complete in " + (System.currentTimeMillis() - time) + "ms");
+		}
+	}
+	
+	public void createBaselines() {
 		long time = System.currentTimeMillis();
 
 		if( debug )
@@ -89,16 +134,6 @@ public class ApiAnalysisRunner extends AbstractAnalysisRunner {
 		}
 		
 		if( debug )
-			System.out.println("Introspecting Inclusion and Exclusion patterns... ");
-
-		// Get all included elements AFTER the filters are applied
-		IApiComponent[] refIncluded = BaselineUtils.getFilteredElements(
-				refBaseline, includeListLocation, excludeListLocation);
-		IApiComponent[] curIncluded = BaselineUtils.getFilteredElements(
-				profileBaseline, includeListLocation, excludeListLocation);
-		
-		if( debug )
 			System.out.println("Finished Loading Baselines in " + (System.currentTimeMillis() - time) + "ms");
-		return generateReports(refBaseline, refIncluded, curIncluded, properties);
 	}
 }

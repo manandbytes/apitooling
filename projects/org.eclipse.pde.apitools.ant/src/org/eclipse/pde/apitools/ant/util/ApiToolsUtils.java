@@ -29,12 +29,17 @@ import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
 
+import org.eclipse.core.runtime.CoreException;
+import org.eclipse.osgi.service.resolver.ResolverError;
 import org.eclipse.pde.api.tools.internal.problems.ApiProblemFactory;
 import org.eclipse.pde.api.tools.internal.provisional.ApiPlugin;
 import org.eclipse.pde.api.tools.internal.provisional.IApiFilterStore;
 import org.eclipse.pde.api.tools.internal.provisional.IApiMarkerConstants;
+import org.eclipse.pde.api.tools.internal.provisional.comparator.ApiScope;
 import org.eclipse.pde.api.tools.internal.provisional.comparator.IDelta;
+import org.eclipse.pde.api.tools.internal.provisional.model.IApiBaseline;
 import org.eclipse.pde.api.tools.internal.provisional.model.IApiComponent;
+import org.eclipse.pde.api.tools.internal.provisional.model.IApiScope;
 import org.eclipse.pde.api.tools.internal.provisional.problems.IApiProblem;
 import org.eclipse.pde.apitools.ant.internal.AntFilterStore;
 import org.xml.sax.Attributes;
@@ -214,5 +219,30 @@ public class ApiToolsUtils {
 		public boolean isAPIToolsNature() {
 			return this.isAPIToolsNature;
 		}
+	}
+	
+	public static IApiScope getResolvableScope(IApiBaseline currentBaseline, boolean debug) {
+		IApiComponent[] apiComponents = currentBaseline.getApiComponents();
+		ApiScope scope = new ApiScope();
+		for (int i = 0, max = apiComponents.length; i < max; i++) {
+			IApiComponent apiComponent = apiComponents[i];
+			try {
+				ResolverError[] errors = apiComponent.getErrors();
+				if (errors != null) {
+					if (debug) {
+						System.out.println("Errors for component : " + apiComponent.getSymbolicName()); //$NON-NLS-1$
+						for (int j = 0, max2 = errors.length; j < max2; j++) {
+							System.out.println(errors[j]);
+						}
+					}
+					continue;
+				}
+				scope.addElement(apiComponent);
+			} catch (CoreException e) {
+				// ignore
+			}
+		}
+		return scope;
+
 	}
 }

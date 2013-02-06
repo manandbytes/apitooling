@@ -31,6 +31,7 @@ import org.eclipse.pde.api.tools.internal.provisional.model.IApiBaseline;
 import org.eclipse.pde.api.tools.internal.provisional.model.IApiComponent;
 import org.eclipse.pde.api.tools.internal.provisional.model.IApiScope;
 import org.eclipse.pde.api.tools.internal.util.FilteredElements;
+import org.eclipse.pde.apitools.ant.util.ApiToolsUtils;
 
 /**
  * Ant task to run the API freeze check during Eclipse build.
@@ -193,27 +194,7 @@ public class APIFreezeTask extends CommonUtilsTask {
 		}
 	}
 	private IApiScope getScope(IApiBaseline currentBaseline) {
-		IApiComponent[] apiComponents = currentBaseline.getApiComponents();
-		ApiScope scope = new ApiScope();
-		for (int i = 0, max = apiComponents.length; i < max; i++) {
-			IApiComponent apiComponent = apiComponents[i];
-			try {
-				ResolverError[] errors = apiComponent.getErrors();
-				if (errors != null) {
-					if (this.debug) {
-						System.out.println("Errors for component : " + apiComponent.getSymbolicName()); //$NON-NLS-1$
-						for (int j = 0, max2 = errors.length; j < max2; j++) {
-							System.out.println(errors[j]);
-						}
-					}
-					continue;
-				}
-				scope.addElement(apiComponent);
-			} catch (CoreException e) {
-				// ignore
-			}
-		}
-		return scope;
+		return ApiToolsUtils.getResolvableScope(currentBaseline, debug);
 	}
 	/**
 	 * Set the debug value.

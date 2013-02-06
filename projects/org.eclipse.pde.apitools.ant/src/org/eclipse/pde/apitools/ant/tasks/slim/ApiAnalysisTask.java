@@ -54,7 +54,7 @@ public class ApiAnalysisTask extends AbstractComparisonTask {
 					File file = new File(this.reports, id);
 					File file2 = new File(file, REPORT_NAME);
 					if( debug ) 
-						System.out.println("Saving report for bundle " + id + " to " + file2.getAbsolutePath());
+						System.out.println("Saving report for bundle " + id);
 					ReportUtils.saveReport(report, file2);
 				}
 			} catch(ToolingException ioe) {

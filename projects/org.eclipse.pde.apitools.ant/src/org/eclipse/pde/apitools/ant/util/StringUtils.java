@@ -10,7 +10,10 @@
  *******************************************************************************/
 package org.eclipse.pde.apitools.ant.util;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 import org.eclipse.pde.api.tools.internal.provisional.model.IApiComponent;
@@ -67,6 +70,15 @@ public class StringUtils {
 		return String.valueOf(buffer);
 	}
 
+	public static String toLineSeparatedString(List<String> list) {
+		StringWriter stringWriter = new StringWriter();
+		PrintWriter writer = new PrintWriter(stringWriter);
+		for (Iterator<String> iterator = list.iterator(); iterator.hasNext(); ) {
+			writer.println(iterator.next());
+		}
+		writer.close();
+		return String.valueOf(stringWriter.getBuffer());
+	}
 	
 	// Require-Bundle: org.eclipse.jst.jee; bundle-version="1.0.401"
 	public static String getRequiredBundleName(String s) {
