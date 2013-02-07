@@ -34,7 +34,6 @@ public class DeprecationTask extends AbstractDeltaComparisonTask {
 	@Override
 	public IDelta createDelta(IApiBaseline referenceBaseline,
 			IApiBaseline profileBaseline) throws CoreException {
-		// TODO Auto-generated method stub
 		return ApiComparator.compare(referenceBaseline, profileBaseline, VisibilityModifiers.API, true, null);
 	}
 

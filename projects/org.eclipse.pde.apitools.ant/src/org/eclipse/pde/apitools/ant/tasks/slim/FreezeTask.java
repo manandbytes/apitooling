@@ -35,7 +35,6 @@ public class FreezeTask extends AbstractDeltaComparisonTask {
 	@Override
 	public IDelta createDelta(IApiBaseline referenceBaseline,
 			IApiBaseline profileBaseline) throws CoreException {
-		// TODO Auto-generated method stub
 		return ApiComparator.compare(ApiToolsUtils.getResolvableScope(profileBaseline, debug), 
 				referenceBaseline, VisibilityModifiers.API, true, null);
 	}
