@@ -18,7 +18,6 @@ import org.apache.tools.ant.BuildException;
 import org.eclipse.pde.api.tools.internal.model.StubApiComponent;
 import org.eclipse.pde.api.tools.internal.provisional.model.IApiBaseline;
 import org.eclipse.pde.api.tools.internal.provisional.model.IApiComponent;
-import org.eclipse.pde.api.tools.internal.util.Util;
 import org.eclipse.pde.apitools.ant.util.BaselineUtils;
 
 public class ApiAnalysisRunner extends AbstractAnalysisRunner {
@@ -27,7 +26,8 @@ public class ApiAnalysisRunner extends AbstractAnalysisRunner {
 	private static final String CURRENT_BASE = "currentBase";
 	
 	
-	private String referenceBaseline;
+	private String referenceBaselineLocation;
+	private File[] referenceBaselineFiles;
 	private String profileBaselineLocation = null;
 	private File[] profileBaselineFiles = null;
 	private String includeListLocation;
@@ -37,17 +37,44 @@ public class ApiAnalysisRunner extends AbstractAnalysisRunner {
 	private IApiBaseline refBaseline, profileBaseline;
 	private IApiComponent[] refIncluded, profileIncluded;
 	
-	public ApiAnalysisRunner(String referenceBaseline, String profileBaselineLocation,
+	/**
+	 * 
+	 * @param reference either a string pointing to a reference baseline, or a File array
+	 * @param profile either a string pointing to a profile baseline, or a File array
+	 * @param reports
+	 * @param filters
+	 * @param properties
+	 * @param skipNonApi
+	 * @param xslSheet
+	 * @param includeListLocation
+	 * @param excludeListLocation
+	 * @param debug
+	 */
+	public ApiAnalysisRunner(
+			Object reference, 
+			Object profile,
 			String reports, String filters, Properties properties,
 			boolean skipNonApi, String xslSheet,
 			String includeListLocation, String excludeListLocation, boolean debug) {
 		super(reports, filters, properties, skipNonApi, xslSheet, debug);
-		this.referenceBaseline = referenceBaseline;
-		this.profileBaselineLocation = profileBaselineLocation;
+		if( reference != null) {
+			if( reference instanceof String)
+				this.referenceBaselineLocation = (String)reference;
+			else if( reference instanceof File[])
+				this.referenceBaselineFiles = (File[]) reference;
+		}
+		if( profile != null) {
+			if( profile instanceof String)
+				this.profileBaselineLocation = (String)profile;
+			else if( profile instanceof File[] ) {
+				this.profileBaselineFiles = (File[])profile;
+			}
+		}
 		this.includeListLocation = includeListLocation;
 		this.excludeListLocation = excludeListLocation;
 	}
 	
+
 	public void disposeBaselines() {
 		long time = System.currentTimeMillis();
 		if( refBaseline != null )
@@ -75,18 +102,6 @@ public class ApiAnalysisRunner extends AbstractAnalysisRunner {
 	
 	public IApiComponent[] getProfileComponents() {
 		return profileIncluded;
-	}
-
-	public ApiAnalysisRunner(String referenceBaseline, 
-			File[] profileBaselineFiles,
-			String reports, String filters, Properties properties,
-			boolean skipNonApi, String xslSheet,
-			String includeListLocation, String excludeListLocation, boolean debug) {
-		super(reports, filters, properties, skipNonApi, xslSheet, debug);
-		this.referenceBaseline = referenceBaseline;
-		this.profileBaselineFiles = profileBaselineFiles;
-		this.includeListLocation = includeListLocation;
-		this.excludeListLocation = excludeListLocation;
 	}
 
 	public HashMap<String, ApiAnalysisReport> generateReports() throws BuildException {
@@ -117,15 +132,19 @@ public class ApiAnalysisRunner extends AbstractAnalysisRunner {
 			System.out.println("Creating Reference Baseline...");
 
 		// Create two baselines
-		refBaseline = BaselineUtils.createBaseline(
-				REFERENCE_BASE, referenceBaseline, null);
-		
+		if( profileBaselineFiles == null ) {
+			profileBaseline = BaselineUtils.createBaseline(
+					REFERENCE_BASE, referenceBaselineLocation, null);
+		} else {
+			profileBaseline = BaselineUtils.createBaseline(
+					REFERENCE_BASE, referenceBaselineFiles);
+		}
+
 		if( debug )
 			System.out.println("Creating Profile Baseline...");
 
 		// The profile baseline can be set either through a folder
 		// Or a java.io.File array
-		profileBaseline = null;
 		if( profileBaselineFiles == null ) {
 			profileBaseline = BaselineUtils.createBaseline(
 				CURRENT_BASE, profileBaselineLocation, null);
