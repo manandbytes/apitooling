@@ -95,17 +95,22 @@ public abstract class AbstractComparisonTask extends Task {
 	
 	protected void checkArgs() throws BuildException {
 		Object[] required = getRequiredArguments();
+		checkArgs(required,Messages.printArguments);
+	}
+	
+	public static void checkArgs(Object[] required, String msg) throws BuildException {
 		if( hasEmptyArg(required)) {
 			StringWriter out = new StringWriter();
 			PrintWriter writer = new PrintWriter(out);
-			writer.println(NLS.bind(Messages.printArguments, required));
+			writer.println(NLS.bind(msg, required));
 			writer.flush();
 			writer.close();
 			throw new BuildException(String.valueOf(out.getBuffer()));
 		}
 	}
 	
-	protected boolean hasEmptyArg(Object[] s) {
+	
+	public static boolean hasEmptyArg(Object[] s) {
 		if( s == null )
 			return true;
 		for( int i = 0; i < s.length; i++ ) {

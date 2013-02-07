@@ -26,7 +26,7 @@ public abstract class AbstractDeltaComparisonTask extends AbstractComparisonTask
 		checkArgs();
 		if( debug ) {
 			printArgs();
-			System.out.println("\nRunning " + getClassName() + " Analysis");
+			System.out.println("\nRunning " + getTaskName() + " Analysis");
 		}
 
 		// Generate the reports

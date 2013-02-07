@@ -34,6 +34,17 @@
   <target name="dist" depends="init"
         description="generate the distribution" >
 
+
+        <apitools.freeze
+                baseline="${baseline}"
+                profile="${nightly}"
+                report="${reports}/${DSTAMP}${TSTAMP}"
+                includelist="${includesFile}"
+                preferences="${preferences}"
+                debug="true"
+                styleSheet="../../web/deltas.xsl"
+        />
+
         <apitools.deprecation
                 baseline="${baseline}"
                 profile="${nightly}"
@@ -41,7 +52,7 @@
                 includelist="${includesFile}"
                 preferences="${preferences}"
                 debug="true"
-                styleSheet="../../web/analysis.xsl"
+                styleSheet="../../web/deltas.xsl"
         />
 
 

@@ -16,9 +16,8 @@ import java.io.FileFilter;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -45,6 +44,7 @@ import org.eclipse.pde.api.tools.internal.provisional.ApiPlugin;
 import org.eclipse.pde.api.tools.internal.provisional.model.IApiTypeContainer;
 import org.eclipse.pde.api.tools.internal.provisional.scanner.TagScanner;
 import org.eclipse.pde.api.tools.internal.util.Util;
+import org.eclipse.pde.apitools.ant.tasks.slim.AbstractComparisonTask;
 import org.eclipse.pde.apitools.ant.util.ApiToolsUtils;
 import org.eclipse.pde.apitools.ant.util.IOUtil;
 import org.osgi.framework.BundleException;
@@ -156,29 +156,17 @@ public class ApiFileGenerationTask extends Task {
 	public void setExtraSourceLocations(String sourceLocations) {
 		this.sourceLocations = sourceLocations;
 	}
-	/**
-	 * Execute the ant task
-	 */
-	public void execute() throws BuildException {
-		if (this.binaryLocations == null
-				|| this.projectName == null
-				|| this.projectLocation == null
-				|| this.targetFolder == null) {
-			StringWriter out = new StringWriter();
-			PrintWriter writer = new PrintWriter(out);
-			writer.println(
-				NLS.bind(Messages.api_generation_printArguments,
-					new String[] {
-						this.projectName,
-						this.projectLocation,
-						this.binaryLocations,
-						this.targetFolder
-					})
-			);
-			writer.flush();
-			writer.close();
-			throw new BuildException(String.valueOf(out.getBuffer()));
-		}
+	
+	/* Check that the required arguments are present */
+	private void checkArgs() throws BuildException {
+		String[] required = new String[] {
+				this.projectName, this.projectLocation,
+				this.binaryLocations, this.targetFolder};
+		AbstractComparisonTask.checkArgs(required, Messages.api_generation_printArguments);
+	}
+	
+	/* Print some args */
+	private void printArgs() {
 		if (this.debug) {
 			System.out.println("Project name : " + this.projectName); //$NON-NLS-1$
 			System.out.println("Project location : " + this.projectLocation); //$NON-NLS-1$
@@ -191,6 +179,13 @@ public class ApiFileGenerationTask extends Task {
 				System.out.println("Extra source locations entries : " + this.sourceLocations); //$NON-NLS-1$
 			}
 		}
+	}
+	
+	/* 
+	 * Introspect some details to see whether we should perform any action, 
+	 * or abort the task prematurely. 
+	 */
+	private boolean validateProject() throws BuildException {
 		// collect all compilation units
 		File root = new File(this.projectLocation);
 		if (!root.exists() || !root.isDirectory()) {
@@ -205,7 +200,7 @@ public class ApiFileGenerationTask extends Task {
 		
 		if(!this.allowNonApiProject && !isAPIToolsNature(dotProjectFile)) {
 			System.err.println("The project does not have an API Tools nature so a api_description file will not be generated"); //$NON-NLS-1$
-			return;
+			return false;
 		}
 		// check if the .api_description file exists
 		File targetProjectFolder = new File(this.targetFolder);
@@ -220,156 +215,101 @@ public class ApiFileGenerationTask extends Task {
 		}
 		File apiDescriptionFile = new File(targetProjectFolder, IApiCoreConstants.API_DESCRIPTION_XML_NAME);
 		if (apiDescriptionFile.exists()) {
-			return;
+			System.out.println("An .api_description file already exists for this project.");
+			// Already exists, so ignore, but print no error
+			return false;
 		}
-		File[] allFiles = null;
-		Map manifestMap = null;
+		return true;
+	}
+	
+	private boolean isForbiddenProject() {
+		return this.projectLocation.endsWith(Util.ORG_ECLIPSE_SWT);
+	}
+	/**
+	 * Execute the ant task
+	 */
+	public void execute() throws BuildException {
+		// CHeck we have all required args
+		checkArgs();
+		// Print the args
+		printArgs();
+		// Validate teh project's main structure and pre-reqs
+		boolean isValid = validateProject();
+		if( !isValid )
+			return;
+
+		File root = new File(this.projectLocation);
+		File targetProjectFolder = new File(this.targetFolder);
+		File apiDescriptionFile = new File(targetProjectFolder, IApiCoreConstants.API_DESCRIPTION_XML_NAME);
+		
+		
+		ArrayList<File> allFiles = new ArrayList<File>();
 		IApiTypeContainer classFileContainer = null;
-		if (!this.projectLocation.endsWith(Util.ORG_ECLIPSE_SWT)) {
-			// create the directory class file container used to resolve signatures during tag scanning
-			String[] allBinaryLocations = this.binaryLocations.split(File.pathSeparator);
-			List allContainers = new ArrayList();
-			IApiTypeContainer container = null;
-			for (int i = 0; i < allBinaryLocations.length; i++) {
-				container = getContainer(allBinaryLocations[i]);
-				if (container == null) {
-					throw new BuildException(NLS.bind(Messages.api_generation_invalidBinaryLocation, allBinaryLocations[i]));
-				}
-				allContainers.add(container);
+		String complianceString = null;
+		this.apiPackages = new HashSet<String>();
+
+		// Why is this specifically hard-coded here? Shouldn't this be up to the build
+		// to not call this task on this project?
+		if (!isForbiddenProject()) {
+			Map manifestMap = null;
+			classFileContainer = createClassFileContainer();
+			manifestMap = createRootManifestMap(root);
+			complianceString = resolveCompliance(manifestMap);
+			try {
+				Set<String> packs = collectApiPackageNames(manifestMap);
+				this.apiPackages.addAll(packs);
+			} catch(BundleException be) {
+				ApiPlugin.log(be);
 			}
-			classFileContainer = new CompositeApiTypeContainer(null, allContainers);
-			File manifestFile = null;
-			File manifestDir = new File(root, "META-INF"); //$NON-NLS-1$
-			if (manifestDir.exists() && manifestDir.isDirectory()) {
-				manifestFile = new File(manifestDir, "MANIFEST.MF"); //$NON-NLS-1$
-			}
-			if (manifestFile != null && manifestFile.exists()) {
-				BufferedInputStream inputStream = null;
-				try {
-					inputStream = new BufferedInputStream(new FileInputStream(manifestFile));
-					manifestMap = ManifestElement.parseBundleManifest(inputStream, null);
-					this.apiPackages = collectApiPackageNames(manifestMap);
-				} catch (FileNotFoundException e) {
-					ApiPlugin.log(e);
-				} catch (IOException e) {
-					ApiPlugin.log(e);
-				} catch (BundleException e) {
-					ApiPlugin.log(e);
-				} finally {
-					if (inputStream != null) {
-						try {
-							inputStream.close();
-						} 
-						catch(IOException e) {}
-					}
-				}
-			}
+			
 			if (this.manifests != null) {
 				String[] allManifestFiles = this.manifests.split(File.pathSeparator);
 				for (int i = 0, max = allManifestFiles.length; i < max; i++) {
 					File currentManifest = new File(allManifestFiles[i]);
+					manifestMap = createManifestMapForFile(currentManifest);
 					Set currentApiPackages = null;
-					if (currentManifest.exists()) {
-						BufferedInputStream inputStream = null;
-						ZipFile zipFile = null;
+					if( manifestMap != null ) {
 						try {
-							if (IOUtil.isZipJarFile(currentManifest.getName())) {
-								zipFile = new ZipFile(currentManifest);
-								final ZipEntry entry = zipFile.getEntry("META-INF/MANIFEST.MF"); //$NON-NLS-1$
-								if (entry != null) {
-									inputStream = new BufferedInputStream(zipFile.getInputStream(entry));
-								}
-							} else {
-								inputStream = new BufferedInputStream(new FileInputStream(currentManifest));
-							}
-							if (inputStream != null) {
-								manifestMap = ManifestElement.parseBundleManifest(inputStream, null);
-								currentApiPackages = collectApiPackageNames(manifestMap);
-							}
-						} catch (FileNotFoundException e) {
-							ApiPlugin.log(e);
-						} catch (IOException e) {
-							ApiPlugin.log(e);
-						} catch (BundleException e) {
-							ApiPlugin.log(e);
-						} finally {
-							if (inputStream != null) {
-								try {
-									inputStream.close();
-								} 
-								catch(IOException e) {
-									// ignore
-								}
-							}
-							if (zipFile != null) {
-								try {
-									zipFile.close();
-								} 
-								catch(IOException e) {
-									// ignore
-								}
-							}
+							currentApiPackages = collectApiPackageNames(manifestMap);
+						} catch(BundleException be) {
+							ApiPlugin.log(be);
 						}
 					}
 					if (currentApiPackages != null) {
-						if (this.apiPackages == null) {
-							this.apiPackages = currentApiPackages;
-						} else {
-							this.apiPackages.addAll(currentApiPackages);
-						}
+						this.apiPackages.addAll(currentApiPackages);
 					}
 				}
 			}
+			
+			// Get the list of appropriate files to be analyzed for this project
 			FileFilter fileFilter = new FileFilter() {
 				public boolean accept(File path) {
 					return (path.isFile() && Util.isJavaFileName(path.getName()) && isApi(path.getParent())) || path.isDirectory();
 				}
 			};
-			allFiles = Util.getAllFiles(root, fileFilter);
+			File[] rootFiles = Util.getAllFiles(root, fileFilter);
+			allFiles.addAll(Arrays.asList(rootFiles));
+			
+			/* Add all the appropriate files from the extra source locations */
 			if (this.sourceLocations != null) {
 				String[] allSourceLocations = this.sourceLocations.split(File.pathSeparator);
 				for (int i = 0, max = allSourceLocations.length; i < max; i++) {
 					String currentSourceLocation = allSourceLocations[i];
-					File[] allFiles2 = Util.getAllFiles(new File(currentSourceLocation), fileFilter);
-					if (allFiles2 != null) {
-						if (allFiles == null) {
-							allFiles = allFiles2;
-						} else {
-							int length = allFiles.length;
-							int length2 = allFiles2.length;
-							System.arraycopy(allFiles, 0, (allFiles = new File[length + length2]), 0, length);
-							System.arraycopy(allFiles2, 0, allFiles, length, length2);
-						}
+					File[] sourceLocFiles = Util.getAllFiles(new File(currentSourceLocation), fileFilter);
+					if( sourceLocFiles != null ) {
+						allFiles.addAll(Arrays.asList(sourceLocFiles));
 					}
 				}
 			}
 		}
-		ApiDescription apiDescription = new ApiDescription(this.projectName);
-		TagScanner tagScanner = TagScanner.newScanner();
-		if (allFiles != null && allFiles.length != 0) {
-			Map options = JavaCore.getOptions();
-			options.put(JavaCore.COMPILER_COMPLIANCE, resolveCompliance(manifestMap));
-			CompilationUnit unit = null;
-			for (int i = 0, max = allFiles.length; i < max; i++) {
-				unit = new CompilationUnit(allFiles[i].getAbsolutePath());
-				if (this.debug) {
-					System.out.println("Unit name[" + i + "] : " + unit.getName()); //$NON-NLS-1$ //$NON-NLS-2$
-				}
-				try {
-					tagScanner.scan(unit, apiDescription, classFileContainer, options, null);
-				} catch (CoreException e) {
-					ApiPlugin.log(e);
-				} finally {
-					try {
-						if (classFileContainer != null) {
-							classFileContainer.close();
-						}
-					} 
-					catch (CoreException e) {}
-				}
-			}
-		}
+
+		// Save the .api_description file
 		try {
+			ApiDescription apiDescription = new ApiDescription(this.projectName);
+			if( allFiles.size() > 0 ) { 
+				File[] allFileArray = (File[]) allFiles.toArray(new File[allFiles.size()]);
+				fillApiDescription(apiDescription, allFileArray, classFileContainer, complianceString);
+			}
 			ApiDescriptionXmlCreator xmlVisitor = new ApiDescriptionXmlCreator(this.projectName, this.projectName);
 			apiDescription.accept(xmlVisitor, null);
 			String xml = xmlVisitor.getXML();
@@ -378,6 +318,99 @@ public class ApiFileGenerationTask extends Task {
 			ApiPlugin.log(e);
 		} catch (IOException e) {
 			ApiPlugin.log(e);
+		}
+	}
+	
+	private IApiTypeContainer createClassFileContainer() {
+		// create the directory class file container used to resolve signatures during tag scanning
+		String[] allBinaryLocations = this.binaryLocations.split(File.pathSeparator);
+		List allContainers = new ArrayList();
+		IApiTypeContainer container = null;
+		for (int i = 0; i < allBinaryLocations.length; i++) {
+			container = getContainer(allBinaryLocations[i]);
+			if (container == null) {
+				throw new BuildException(NLS.bind(Messages.api_generation_invalidBinaryLocation, allBinaryLocations[i]));
+			}
+			allContainers.add(container);
+		}
+		return new CompositeApiTypeContainer(null, allContainers);
+	}
+	
+	
+	private Map createRootManifestMap(File root) {
+		File manifestFile = null;
+		File manifestDir = new File(root, "META-INF"); //$NON-NLS-1$
+		if (manifestDir.exists() && manifestDir.isDirectory()) {
+			manifestFile = new File(manifestDir, "MANIFEST.MF"); //$NON-NLS-1$
+		}
+		return createManifestMapForFile(manifestFile);
+	}
+	
+	private Map createManifestMapForFile(File manifestFile) {	
+		if (manifestFile != null && manifestFile.exists()) {
+			BufferedInputStream inputStream = null;
+			ZipFile zipFile = null;
+			try {
+				if (IOUtil.isZipJarFile(manifestFile.getName())) {
+					zipFile = new ZipFile(manifestFile);
+					final ZipEntry entry = zipFile.getEntry("META-INF/MANIFEST.MF"); //$NON-NLS-1$
+					if (entry != null) {
+						inputStream = new BufferedInputStream(zipFile.getInputStream(entry));
+					}
+				} else {
+					inputStream = new BufferedInputStream(new FileInputStream(manifestFile));
+				}
+				if( inputStream != null ) 
+					return ManifestElement.parseBundleManifest(inputStream, null);
+			} catch (FileNotFoundException e) {
+				ApiPlugin.log(e);
+			} catch (IOException e) {
+				ApiPlugin.log(e);
+			} catch (BundleException e) {
+				ApiPlugin.log(e);
+			} finally {
+				if (inputStream != null) {
+					try {
+						inputStream.close();
+					} catch(IOException e) {
+						// Ignore
+					}
+				}
+				if (zipFile != null) {
+					try {
+						zipFile.close();
+					}  catch(IOException e) {
+						// ignore
+					}
+				}
+			}
+		}
+		return null;
+	}
+	
+	private void fillApiDescription(ApiDescription apiDescription, File[] allFiles, 
+			IApiTypeContainer classFileContainer, String compilerCompliance) {
+		TagScanner tagScanner = TagScanner.newScanner();
+		Map options = JavaCore.getOptions();
+		options.put(JavaCore.COMPILER_COMPLIANCE, compilerCompliance);
+		CompilationUnit unit = null;
+		for (int i = 0, max = allFiles.length; i < max; i++) {
+			unit = new CompilationUnit(allFiles[i].getAbsolutePath());
+			if (this.debug) {
+				System.out.println("Unit name[" + i + "] : " + unit.getName()); //$NON-NLS-1$ //$NON-NLS-2$
+			}
+			try {
+				tagScanner.scan(unit, apiDescription, classFileContainer, options, null);
+			} catch (CoreException e) {
+				ApiPlugin.log(e);
+			} finally {
+				try {
+					if (classFileContainer != null) {
+						classFileContainer.close();
+					}
+				} 
+				catch (CoreException e) {}
+			}
 		}
 	}
 
@@ -403,8 +436,8 @@ public class ApiFileGenerationTask extends Task {
 	 * @return the names of the packages that are API for the bundle the api description is being created for
 	 * @throws BundleException if parsing the manifest map to get API package names fail for some reason
 	 */
-	private Set/*<String>*/ collectApiPackageNames(Map manifestmap) throws BundleException {
-		HashSet set = new HashSet();
+	private Set<String> collectApiPackageNames(Map manifestmap) throws BundleException {
+		HashSet<String> set = new HashSet<String>();
 		ManifestElement[] packages = ManifestElement.parseHeader(Constants.EXPORT_PACKAGE, (String) manifestmap.get(Constants.EXPORT_PACKAGE));
 		if (packages != null) {
 			for (int i = 0; i < packages.length; i++) {
@@ -438,13 +471,15 @@ public class ApiFileGenerationTask extends Task {
 	}
 	
 	private IApiTypeContainer getContainer(String location) {
-		File f = new File(location);
-		if (!f.exists()) return null;
-		if (IOUtil.isZipJarFile(location)) {
-			return new ArchiveApiTypeContainer(null, location);
-		} else {
-			return new DirectoryApiTypeContainer(null, location);
+		boolean exists = new File(location).exists();
+		if (exists) {
+			if (IOUtil.isZipJarFile(location)) {
+				return new ArchiveApiTypeContainer(null, location);
+			} else {
+				return new DirectoryApiTypeContainer(null, location);
+			}
 		}
+		return null;
 	}
 	/**
 	 * Resolves the compiler compliance based on the BREE entry in the MANIFEST.MF file
