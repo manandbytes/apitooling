@@ -215,6 +215,11 @@ public final class ApiMigrationTask extends CommonUtilsTask {
 	public void execute() throws BuildException {
 		assertParameters();
 		writeDebugHeader();
+		
+		// THIS is dangerous. Users who use the same
+		// report location for all tasks will find 
+		// that this completely erases all the previous reports!
+		// TODO
 		cleanReportLocation();
 		
 		IApiBaseline baseline = getBaseline(CURRENT_BASELINE_NAME, this.currentBaselineLocation);

@@ -34,6 +34,7 @@ import org.eclipse.pde.api.tools.internal.provisional.model.IApiComponent;
 import org.eclipse.pde.api.tools.internal.util.FilteredElements;
 import org.eclipse.pde.api.tools.internal.util.Util;
 import org.eclipse.pde.api.tools.internal.util.UtilMessages;
+import org.eclipse.pde.apitools.ant.tasks.slim.AbstractComparisonTask;
 
 /**
  * Ant task to compare API scopes.
@@ -49,24 +50,28 @@ public class CompareTask extends CommonUtilsTask {
 	private String excludeListLocation;
 	private String includeListLocation;
 
-	public void execute() throws BuildException {
-		if (this.referenceBaselineLocation == null
-				|| this.currentBaselineLocation == null
-				|| this.reportLocation == null) {
-			StringWriter out = new StringWriter();
-			PrintWriter writer = new PrintWriter(out);
-			writer.println(
-				NLS.bind(Messages.printArguments,
-					new String[] {
-						this.referenceBaselineLocation,
-						this.currentBaselineLocation,
-						this.reportLocation,
-					})
-			);
-			writer.flush();
-			writer.close();
-			throw new BuildException(String.valueOf(out.getBuffer()));
+	private void checkArgs() throws BuildException {
+		String[] required = new String[] {
+				this.referenceBaselineLocation,
+				this.currentBaselineLocation,
+				this.reportLocation,
+			};
+		AbstractComparisonTask.checkArgs(required, Messages.printArguments);
+		
+		// Check if the report location can be written to
+		File outputDir = new File(this.reportLocation);
+		if (!outputDir.exists()) {
+			if (!outputDir.mkdirs()) {
+				throw new BuildException(
+					NLS.bind(
+							Messages.errorCreatingParentReportFile,
+							outputDir.getAbsolutePath()
+					));
+			}
 		}
+	}
+	
+	private void printArgs() {
 		if (this.debug) {
 			System.out.println("Reference baseline : " + this.referenceBaselineLocation); //$NON-NLS-1$
 			System.out.println("Baseline to compare : " + this.currentBaselineLocation); //$NON-NLS-1$
@@ -83,34 +88,98 @@ public class CompareTask extends CommonUtilsTask {
 				System.out.println("No include list location"); //$NON-NLS-1$
 			}
 		}
-		// create reference
+	}
+	
+	public void execute() throws BuildException {
+		checkArgs();
+		printArgs();
+		
+		// Extract baselines if required
 		File referenceInstallDir = extractSDK(REFERENCE, this.referenceBaselineLocation);
-
 		File baselineInstallDir = extractSDK(CURRENT, this.currentBaselineLocation);
 
-		// run the comparison
 		// create baseline for the reference
 		IApiBaseline referenceBaseline = createBaseline(REFERENCE_BASELINE_NAME, referenceInstallDir.getAbsolutePath(), this.eeFileLocation);
 		IApiBaseline currentBaseline = createBaseline(CURRENT_BASELINE_NAME, baselineInstallDir.getAbsolutePath(), this.eeFileLocation);
 		
-		IDelta delta = null;
-		
+		// Get the filtered elements, which are only used in generating the report
+		// This is done early so that debugging users can verify the lists without 
+		// waiting several minutes until after the delta is calculated 
 		FilteredElements excludedElements = CommonUtilsTask.initializeFilteredElements(this.excludeListLocation, currentBaseline, this.debug);
-		
+		FilteredElements includedElements = CommonUtilsTask.initializeFilteredElements(this.includeListLocation, currentBaseline, this.debug);
 		if (this.debug) {
 			System.out.println("===================================================================================="); //$NON-NLS-1$
 			System.out.println("Excluded elements list:"); //$NON-NLS-1$
 			System.out.println(excludedElements);
-		}
-		
-		FilteredElements includedElements = CommonUtilsTask.initializeFilteredElements(this.includeListLocation, currentBaseline, this.debug);
-		
-		if (this.debug) {
 			System.out.println("===================================================================================="); //$NON-NLS-1$
 			System.out.println("Included elements list:"); //$NON-NLS-1$
 			System.out.println(includedElements);
 		}
+		
+		
+		// Set up our scope
 		ApiScope scope = new ApiScope();
+		configureScope(currentBaseline, scope);
+		
+		// Get our delta
+		IDelta delta = null;
+		try {
+			delta = ApiComparator.compare(scope, referenceBaseline, this.visibilityModifiers, false, null);
+		} catch(CoreException e) {
+			// an error occurred during the comparison
+			throw new BuildException(NLS.bind(Messages.illegalElementInScope, e.getMessage()));
+		} finally {
+			// Cleanup
+			referenceBaseline.dispose();
+			currentBaseline.dispose();
+			StubApiComponent.disposeAllCaches();
+			deleteBaseline(this.referenceBaselineLocation, referenceInstallDir);
+			deleteBaseline(this.currentBaselineLocation, baselineInstallDir);
+		}
+		if (delta == null) {
+			// an error occurred during the comparison
+			throw new BuildException(Messages.errorInComparison);
+		}
+		// dump the report in the appropriate folder
+		File outputFile = new File(this.reportLocation, REPORT_XML_FILE_NAME);
+		writeReport(outputFile, includedElements, excludedElements, delta);
+	}
+	
+	protected void writeReport(File outputFile, FilteredElements includedElements, FilteredElements excludedElements, IDelta delta) {
+		BufferedWriter writer = null;
+		try {
+			if (outputFile.exists()) {
+				outputFile.delete();
+			}
+			writer = new BufferedWriter(new FileWriter(outputFile));
+
+			FilterListDeltaVisitor visitor = new FilterListDeltaVisitor(excludedElements, includedElements, FilterListDeltaVisitor.CHECK_ALL);
+			delta.accept(visitor);
+			writer.write(visitor.getXML());
+			writer.flush();
+			if (this.debug) {
+				String potentialExcludeList = visitor.getPotentialExcludeList();
+				if (potentialExcludeList.length() != 0) {
+					System.out.println("Potential exclude list:"); //$NON-NLS-1$
+					System.out.println(potentialExcludeList);
+				}
+			}
+		} catch (IOException e) {
+			ApiPlugin.log(e);
+		} catch (CoreException e) {
+			ApiPlugin.log(e);
+		} finally {
+			try {
+				if (writer != null) {
+					writer.close();
+				}
+			} catch(IOException e) {
+				// ignore
+			}
+		}
+	}
+
+	protected void configureScope(IApiBaseline currentBaseline, ApiScope scope) {
 		if (this.componentsList != null) {
 			// needs to set up individual components
 			IApiComponent[] apiComponents = currentBaseline.getApiComponents();
@@ -151,69 +220,8 @@ public class CompareTask extends CommonUtilsTask {
 		} else {
 			scope.addElement(currentBaseline);
 		}
-		try {
-			delta = ApiComparator.compare(scope, referenceBaseline, this.visibilityModifiers, false, null);
-		} catch(CoreException e) {
-			// an error occurred during the comparison
-			throw new BuildException(NLS.bind(Messages.illegalElementInScope, e.getMessage()));
-		} finally {
-			referenceBaseline.dispose();
-			currentBaseline.dispose();
-			StubApiComponent.disposeAllCaches();
-			deleteBaseline(this.referenceBaselineLocation, referenceInstallDir);
-			deleteBaseline(this.currentBaselineLocation, baselineInstallDir);
-		}
-		if (delta == null) {
-			// an error occurred during the comparison
-			throw new BuildException(Messages.errorInComparison);
-		}
-		// dump the report in the appropriate folder
-		BufferedWriter writer = null;
-		File outputDir = new File(this.reportLocation);
-		if (!outputDir.exists()) {
-			if (!outputDir.mkdirs()) {
-				throw new BuildException(
-					NLS.bind(
-							Messages.errorCreatingParentReportFile,
-							outputDir.getAbsolutePath()
-					));
-			}
-		}
-		File outputFile = new File(this.reportLocation, REPORT_XML_FILE_NAME);
-		try {
-			if (outputFile.exists()) {
-				// delete the file
-				// TODO we might want to customize it
-				outputFile.delete();
-			}
-			writer = new BufferedWriter(new FileWriter(outputFile));
-
-			FilterListDeltaVisitor visitor = new FilterListDeltaVisitor(excludedElements, includedElements, FilterListDeltaVisitor.CHECK_ALL);
-			delta.accept(visitor);
-			writer.write(visitor.getXML());
-			writer.flush();
-			if (this.debug) {
-				String potentialExcludeList = visitor.getPotentialExcludeList();
-				if (potentialExcludeList.length() != 0) {
-					System.out.println("Potential exclude list:"); //$NON-NLS-1$
-					System.out.println(potentialExcludeList);
-				}
-			}
-		} catch (IOException e) {
-			ApiPlugin.log(e);
-		} catch (CoreException e) {
-			ApiPlugin.log(e);
-		} finally {
-			try {
-				if (writer != null) {
-					writer.close();
-				}
-			} catch(IOException e) {
-				// ignore
-			}
-		}
 	}
-
+	
 	/**
 	 * Set the debug value.
 	 * <p>The possible values are: <code>true</code>, <code>false</code></p>
