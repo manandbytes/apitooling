@@ -8,7 +8,19 @@
 		<version>1.0.0-SNAPSHOT</version>
 	</parent>
 	<groupId>net.oxbeef.apitools</groupId>
-	<artifactId>net.oxbeef.apitools.core</artifactId>
+	<artifactId>org.eclipse.pde.apitools.ant</artifactId>
 
 	<packaging>eclipse-plugin</packaging>
+
+  <distributionManagement>
+         <repository>
+            <id>jbosstools-experiments</id>
+            <url>https://repository.jboss.org/nexus/content/repositories/jbosstools-experiments/</url>
+        </repository>
+        <snapshotRepository>
+            <id>jbosstools-experiments-snapshots</id>
+            <url>https://repository.jboss.org/nexus/content/repositories/jbosstools-experiments-snapshots/</url>
+        </snapshotRepository>
+  </distributionManagement>
+
 </project>
