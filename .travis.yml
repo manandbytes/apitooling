@@ -1,0 +1,5 @@
+language: java
+cache:
+  directories:
+  - $HOME/.m2
+script: mvn --file maven-plugins/apitools-plugin/pom.xml test -B
